@@ -11,26 +11,12 @@ def is_port_in_use(port):
 
 
 class Connection:
-    """
-
-    """
     port = 9999
 
-    def __init__(self,
-                 ip: str = '*',
-                 port: Union[int, str, None] = None,
-                 is_input: bool = True):
-        self.is_input = is_input
+    def __init__(self, ip: str, port: Union[int, str, None]):
         self.context = zmq.Context()
-        socket_type = zmq.REP if is_input else zmq.REQ
-        self.socket = self.context.socket(socket_type)
         self.ip = ip
         self.port = str(port) if port else Connection._get_free_port()
-        address = f'tcp://{self.ip}:{self.port}'
-        if self.is_input:
-            self.socket.bind(address)
-        else:
-            self.socket.connect(address)
 
     @staticmethod
     def _get_free_port():
@@ -42,16 +28,47 @@ class Connection:
         Connection.port += 1
         return str(free_port)
 
+    def establish(self):
+        raise NotImplementedError
+
+    def listen(self, **kwargs):
+        raise RuntimeError('Request Socket is configured for listening')
+
+    def send(self, **kwargs):
+        raise RuntimeError('Attempt to send data via Input Socket')
+
+
+class RequestConnection(Connection):
+    def __init__(self,
+                 ip: str = 'localhost',
+                 port: Union[int, str, None] = None):
+        super(RequestConnection, self).__init__(ip, port)
+        self.socket = self.context.socket(zmq.REQ)
+        self.establish()
+
+    def establish(self):
+        address = f'tcp://{self.ip}:{self.port}'
+        self.socket.connect(address)
+
+    def send(self, message: Union[str], timeout: int = 60):  # timeout in seconds
+        pass
+
+
+class ReplyConnection(Connection):
+    def __init__(self,
+                 ip: str = '*',
+                 port: Union[int, str, None] = None):
+        super(ReplyConnection, self).__init__(ip, port)
+        self.socket = self.context.socket(zmq.REP)
+        self.establish()
+
+    def establish(self):
+        address = f'tcp://{self.ip}:{self.port}'
+        print(f'Starting relay at {address}')
+        self.socket.bind(address)
+
     def listen(self, is_json: bool = True):
-        if not self.is_input:
-            raise RuntimeError('Request Socket is configured for listening')
         if is_json:
             return self.socket.recv_json()
         else:
             return self.socket.recv()
-
-    def send(self, message: Union[str, json], timeout: int = 60):  # timeout in seconds
-        if self.is_input:
-            raise RuntimeError('Attempt to send data via Input Socket')
-
-        return
