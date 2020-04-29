@@ -4,7 +4,7 @@ from collections import deque
 
 import zmq
 
-from lib.sockets import get_server_socket
+from common.connection import get_server_socket
 
 
 agents = []
@@ -31,13 +31,13 @@ async def socket_out_loop():
     await asyncio.sleep(1)
 
 
-async def rump_up():
+async def start():
     _server = asyncio.create_task(server_loop())
     await _server
 
 
 def main():
-    asyncio.run(rump_up())
+    asyncio.run(start())
 
 
 if __name__ == '__main__':
