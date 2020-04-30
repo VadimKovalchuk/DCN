@@ -1,6 +1,6 @@
 import json
 import socket
-from typing import Union
+from typing import Union, Callable
 
 import zmq
 
@@ -50,8 +50,9 @@ class RequestConnection(Connection):
         address = f'tcp://{self.ip}:{self.port}'
         self.socket.connect(address)
 
-    def send(self, message: Union[str], timeout: int = 60):  # timeout in seconds
-        pass
+    def send(self, message: Union[str, dict], timeout: int = 60):  # timeout in seconds
+        self.socket.send(message)
+        return self.socket.recv()
 
 
 class ReplyConnection(Connection):
@@ -67,8 +68,6 @@ class ReplyConnection(Connection):
         print(f'Starting relay at {address}')
         self.socket.bind(address)
 
-    def listen(self, is_json: bool = True):
-        if is_json:
-            return self.socket.recv_json()
-        else:
-            return self.socket.recv()
+    def listen(self, callback: Callable, is_json: bool = True):
+        request = self.socket.recv_json() if is_json else self.socket.recv()
+        self.socket.send(callback(request))

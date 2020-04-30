@@ -11,15 +11,16 @@ clients = []
 tasks = deque([])
 
 
+def request_handler(request: str):
+    print("Received request: %s" % request)
+    return 'World'.encode()
+
+
 def main():
     connection = ReplyConnection()
     while True:
         print("waiting")
-        message = connection.socket.recv()
-        print("Received request: %s" % message)
-        #  Do some 'work'
-        #  Send reply back to client
-        connection.socket.send(b"World")
+        connection.listen(request_handler, is_json=False)
 
 
 if __name__ == '__main__':
