@@ -1,28 +1,25 @@
-import zmq
-
-context = zmq.Context()
-
-#  Socket to talk to server
-# print("Connecting to hello world server…")
-# socket = context.socket(zmq.REQ)
-# socket.connect("tcp://localhost:9999")
+from copy import deepcopy
+from common.connection import RequestConnection
+from common.request_types import register, pulse
 
 
-class RelayHandler:
-    def __init__(self):
-        self.ip = 'localhost'
-        self.port = '9999'
+def main():
+    connection = RequestConnection(port=9999)
+    print("Connecting to dispatcher")
+    _register = deepcopy(register)
+    _register['type'] = 'client'
+    reply = connection.send(_register)
+    print(reply)
+    if reply and reply['result']:
+        agent_id = reply['id']
+    else:
+        assert False, 'Failed to get ID'
+    _pulse = deepcopy(pulse)
+    _pulse['id'] = agent_id
+    print("Sending pulse: %s" % 1)
+    message = connection.send(_pulse)
+    print("Received pulse reply %s [ %s ]" % (1, message))
 
-    def register(self):
-        print(f'Register on Relay {self.ip}:{self.port}')
-        socket = context.socket(zmq.REQ)
-        socket.connect(f'tcp://{self.ip}:{self.port}')
 
-#  Do 10 requests, waiting each time for a response
-for request in range(10):
-    print("Sending request %s …" % request)
-    socket.send(b"Hello")
-
-    #  Get the reply.
-    message = socket.recv()
-    print("Received reply %s [ %s ]" % (request, message))
+if __name__ == '__main__':
+    main()

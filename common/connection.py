@@ -41,7 +41,7 @@ class Connection:
 class RequestConnection(Connection):
     def __init__(self,
                  ip: str = 'localhost',
-                 port: Union[int, str, None] = None):
+                 port: Union[int, str] = ''):
         super(RequestConnection, self).__init__(ip, port)
         self.socket = self.context.socket(zmq.REQ)
         self.establish()
@@ -50,15 +50,15 @@ class RequestConnection(Connection):
         address = f'tcp://{self.ip}:{self.port}'
         self.socket.connect(address)
 
-    def send(self, message: Union[str, dict], timeout: int = 60):  # timeout in seconds
-        self.socket.send(message)
-        return self.socket.recv()
+    def send(self, message: dict, timeout: int = 60):  # timeout in seconds
+        self.socket.send_json(message)
+        return self.socket.recv_json()
 
 
 class ReplyConnection(Connection):
     def __init__(self,
                  ip: str = '*',
-                 port: Union[int, str, None] = None):
+                 port: Union[int, str] = ''):
         super(ReplyConnection, self).__init__(ip, port)
         self.socket = self.context.socket(zmq.REP)
         self.establish()
@@ -68,6 +68,6 @@ class ReplyConnection(Connection):
         print(f'Starting relay at {address}')
         self.socket.bind(address)
 
-    def listen(self, callback: Callable, is_json: bool = True):
-        request = self.socket.recv_json() if is_json else self.socket.recv()
-        self.socket.send(callback(request))
+    def listen(self, callback: Callable):
+        request = self.socket.recv_json()
+        self.socket.send_json(callback(request))
