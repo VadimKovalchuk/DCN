@@ -65,7 +65,6 @@ class ReplyConnection(Connection):
 
     def establish(self):
         address = f'tcp://{self.ip}:{self.port}'
-        print(f'Starting relay at {address}')
         self.socket.bind(address)
 
     def listen(self, callback: Callable):

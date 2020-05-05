@@ -6,29 +6,6 @@ from common.connection import ReplyConnection
 from common.request_types import Commands
 
 
-def register(request: dict):
-    request['id'] = 1
-    request['result'] = True
-    return request
-
-
-def pulse(request: dict):
-    request['reply'] = {'status': 'ok'}
-    return request
-
-
-commands = {
-    Commands.register: register,
-    Commands.pulse: pulse
-}
-
-
-def request_handler(request: dict):
-    print(f'got command: {request}')
-    command = commands[request['command']]
-    return command(request)
-
-
 class Dispatcher:
     def __init__(self, ip: str = '*',
                  port: Union[int, str] = ''):
@@ -36,17 +13,31 @@ class Dispatcher:
         self.agents = []
         self.broker = None  # NOT IMPLEMENTED
         self._listen = True
-        self.request_handler = request_handler
-        self._listen_count = 0
+        self.request_handler = self.default_request_handler
 
     def listen(self):
         count = 0
         while self._listen:
-            count += 1
             print("waiting")
             self.connection.listen(self.request_handler)
-            if count == self._listen_count:
-                self._listen = False
+
+    def default_request_handler(self, request: dict):
+        commands = {
+            Commands.register: self._register_handler,
+            Commands.pulse: self._pulse_handler
+        }
+        print(f'got command: {request}')
+        command = commands[request['command']]
+        return command(request)
+
+    def _register_handler(self, request: dict):
+        request['id'] = 1
+        request['result'] = True
+        return request
+
+    def _pulse_handler(self, request: dict):
+        request['reply'] = {'status': 'ok'}
+        return request
 
 
 def main():
