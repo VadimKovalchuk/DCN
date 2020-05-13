@@ -1,8 +1,11 @@
-import json
+import abc
+import logging
 import socket
 from typing import Union, Callable
 
 import zmq
+
+logger = logging.getLogger(__name__)
 
 
 def is_port_in_use(port):
@@ -17,6 +20,13 @@ class Connection:
         self.context = zmq.Context()
         self.ip = ip
         self.port = str(port) if port else Connection._get_free_port()
+        self.socket = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self):
+        self.socket.close()
 
     @staticmethod
     def _get_free_port():
@@ -28,8 +38,9 @@ class Connection:
         Connection.port += 1
         return str(free_port)
 
+    @abc.abstractmethod
     def establish(self):
-        raise NotImplementedError
+        ...
 
     def listen(self, **kwargs):
         raise RuntimeError('Request Socket is configured for listening')
@@ -48,11 +59,15 @@ class RequestConnection(Connection):
 
     def establish(self):
         address = f'tcp://{self.ip}:{self.port}'
+        logger.info(f'Establishing connection to: {address}')
         self.socket.connect(address)
 
     def send(self, message: dict, timeout: int = 60):  # timeout in seconds
         self.socket.send_json(message)
         return self.socket.recv_json()
+
+    def close(self):
+        self.socket.close()
 
 
 class ReplyConnection(Connection):
@@ -65,8 +80,16 @@ class ReplyConnection(Connection):
 
     def establish(self):
         address = f'tcp://{self.ip}:{self.port}'
+        logger.info(f'Binding port for listening: {address}')
         self.socket.bind(address)
 
-    def listen(self, callback: Callable):
-        request = self.socket.recv_json()
-        self.socket.send_json(callback(request))
+    def listen(self, callback: Callable, timeout: int = 30):
+        if self.socket.poll(timeout):
+            request = self.socket.recv_json()
+            self.socket.send_json(callback(request))
+            return True
+        else:
+            return False
+
+    def close(self):
+        self.socket.close()

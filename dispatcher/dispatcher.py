@@ -1,24 +1,32 @@
-import json
+import logging
 from typing import Union
-from collections import deque
 
 from common.connection import ReplyConnection
 from common.request_types import Commands
+
+logger = logging.getLogger(__name__)
 
 
 class Dispatcher:
     def __init__(self, ip: str = '*',
                  port: Union[int, str] = ''):
+        logger.info('Starting Dispatcher')
         self.connection = ReplyConnection(ip, port)
-        self.agents = []
         self.broker = None  # NOT IMPLEMENTED
-        self._listen = True
+        self.agents = []
         self.request_handler = self.default_request_handler
+        self._next_free_id = 1001
+        self._listen = True
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self):
+        self.connection.close()
 
     def listen(self):
-        count = 0
         while self._listen:
-            print("waiting")
+            logger.debug('Pending for incoming message')
             self.connection.listen(self.request_handler)
 
     def default_request_handler(self, request: dict):
@@ -31,8 +39,9 @@ class Dispatcher:
         return command(request)
 
     def _register_handler(self, request: dict):
-        request['id'] = 1
+        request['id'] = self._next_free_id
         request['result'] = True
+        self._next_free_id += 1
         return request
 
     def _pulse_handler(self, request: dict):
@@ -41,8 +50,8 @@ class Dispatcher:
 
 
 def main():
-    dispatcher = Dispatcher()
-    dispatcher.listen()
+    with Dispatcher() as dispatcher:
+        dispatcher.listen()
 
 
 if __name__ == '__main__':
