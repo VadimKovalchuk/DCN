@@ -7,7 +7,7 @@ register = {
     'id': 0,
     'command': 'register',
     'type': 'unified',
-    'name': 'undef',
+    'name': '',
     'result': False
 }
 

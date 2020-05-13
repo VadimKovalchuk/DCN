@@ -25,7 +25,8 @@ class Connection:
     def __enter__(self):
         return self
 
-    def __exit__(self):
+    def __exit__(self, *exc_info):
+        logger.info(f'Closing {self}')
         self.socket.close()
 
     @staticmethod
@@ -48,6 +49,10 @@ class Connection:
     def send(self, **kwargs):
         raise RuntimeError('Attempt to send data via Input Socket')
 
+    @abc.abstractmethod
+    def __str__(self):
+        ...
+
 
 class RequestConnection(Connection):
     def __init__(self,
@@ -69,6 +74,9 @@ class RequestConnection(Connection):
     def close(self):
         self.socket.close()
 
+    def __str__(self):
+        return f'RequestConnection({self.ip}:{self.port})'
+
 
 class ReplyConnection(Connection):
     def __init__(self,
@@ -84,7 +92,7 @@ class ReplyConnection(Connection):
         self.socket.bind(address)
 
     def listen(self, callback: Callable, timeout: int = 30):
-        if self.socket.poll(timeout):
+        if self.socket.poll(timeout * 1000):
             request = self.socket.recv_json()
             self.socket.send_json(callback(request))
             return True
@@ -93,3 +101,6 @@ class ReplyConnection(Connection):
 
     def close(self):
         self.socket.close()
+
+    def __str__(self):
+        return f'ReplyConnection({self.ip}:{self.port})'

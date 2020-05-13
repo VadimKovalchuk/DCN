@@ -1,5 +1,5 @@
 import logging
-from typing import Union
+from typing import Callable, Union
 
 from common.connection import ReplyConnection
 from common.request_types import Commands
@@ -13,7 +13,7 @@ class Dispatcher:
         logger.info('Starting Dispatcher')
         self.connection = ReplyConnection(ip, port)
         self.broker = None  # NOT IMPLEMENTED
-        self.agents = []
+        self.agents = {}
         self.request_handler = self.default_request_handler
         self._next_free_id = 1001
         self._listen = True
@@ -21,13 +21,16 @@ class Dispatcher:
     def __enter__(self):
         return self
 
-    def __exit__(self):
+    def __exit__(self, *exc_info):
+        logger.info(f'Closing Dispatcher connection:{self.connection}')
         self.connection.close()
 
-    def listen(self):
+    def listen(self, polling_timeout: int = 30, interrupt: Callable = None):
         while self._listen:
             logger.debug('Pending for incoming message')
-            self.connection.listen(self.request_handler)
+            expired = self.connection.listen(self.request_handler, polling_timeout)
+            if interrupt and interrupt(expired):
+                break
 
     def default_request_handler(self, request: dict):
         commands = {
@@ -40,6 +43,7 @@ class Dispatcher:
 
     def _register_handler(self, request: dict):
         request['id'] = self._next_free_id
+        self.agents[self._next_free_id] = ''
         request['result'] = True
         self._next_free_id += 1
         return request
