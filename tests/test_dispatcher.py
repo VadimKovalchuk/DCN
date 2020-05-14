@@ -1,5 +1,6 @@
 import logging
 from copy import deepcopy
+from datetime import datetime
 
 import pytest
 
@@ -56,3 +57,8 @@ def test_dispatcher_register(dispatcher):
         reply = request_connection.socket.recv_json()
         assert reply['id'] == expected_id, 'Wrong agent id is assigned'
         assert reply['name'] == name, 'Agent id was modified'
+        assert expected_id in dispatcher.agents, 'Agent is missing in ' \
+                                                 'dispatcher agents list'
+        now = datetime.utcnow()
+        last_sync = dispatcher.agents[expected_id].last_sync
+        assert 1 > (now - last_sync).seconds, 'Wrong time is set in agent'

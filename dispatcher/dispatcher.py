@@ -1,6 +1,7 @@
 import logging
 from typing import Callable, Union
 
+from agent import RemoteAgent
 from common.connection import ReplyConnection
 from common.request_types import Commands
 
@@ -37,20 +38,21 @@ class Dispatcher:
             Commands.register: self._register_handler,
             Commands.pulse: self._pulse_handler
         }
-        print(f'got command: {request}')
         command = commands[request['command']]
         return command(request)
 
     def _register_handler(self, request: dict):
         request['id'] = self._next_free_id
-        self.agents[self._next_free_id] = ''
+        self.agents[self._next_free_id] = RemoteAgent(self._next_free_id)
         request['result'] = True
         self._next_free_id += 1
         return request
 
     def _pulse_handler(self, request: dict):
-        request['reply'] = {'status': 'ok'}
-        return request
+        agent = self.agents[request['id']]
+        reply = agent.sync(request)
+        reply['reply'] = {'status': 'ok'}
+        return reply
 
 
 def main():

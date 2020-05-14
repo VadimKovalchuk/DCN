@@ -1,9 +1,51 @@
+import abc
 from copy import deepcopy
+from datetime import datetime
 from time import sleep
 
 from common.connection import RequestConnection
 from common.request_types import register, pulse
 
+
+class AgentBase:
+    def __init__(self):
+        self.id = 0
+        self.last_sync = datetime.utcnow()
+
+    @abc.abstractmethod
+    def sync(self):
+        ...
+
+    def __str__(self):
+        return f'Agent({self.id})'
+
+
+class Agent(AgentBase):
+    def __init__(self,
+                 dsp_ip: str = 'localhost',
+                 dsp_port: int = 9999):
+        super(Agent, self).__init__()
+        self.socket = RequestConnection(dsp_ip, dsp_port)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        self.socket.close()
+
+    def sync(self, reply: dict):
+        self.last_sync = datetime.utcnow()
+
+
+class RemoteAgent(AgentBase):
+    def __init__(self,
+                 id_: int = 0):
+        super(RemoteAgent, self).__init__()
+        self.id = id_
+
+    def sync(self, request: dict):
+        self.last_sync = datetime.utcnow()
+        return request
 
 
 def main():
