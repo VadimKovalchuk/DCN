@@ -45,6 +45,7 @@ class RemoteAgent(AgentBase):
 
     def sync(self, request: dict):
         self.last_sync = datetime.utcnow()
+        request['reply'] = {'status': 'ok'}
         return request
 
 

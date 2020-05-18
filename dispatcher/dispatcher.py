@@ -28,7 +28,6 @@ class Dispatcher:
 
     def listen(self, polling_timeout: int = 30, interrupt: Callable = None):
         while self._listen:
-            logger.debug('Pending for incoming message')
             expired = self.connection.listen(self.request_handler, polling_timeout)
             if interrupt and interrupt(expired):
                 break
@@ -42,6 +41,7 @@ class Dispatcher:
         return command(request)
 
     def _register_handler(self, request: dict):
+        logger.debug(f'Registration request received {request["name"]}')
         request['id'] = self._next_free_id
         self.agents[self._next_free_id] = RemoteAgent(self._next_free_id)
         request['result'] = True
@@ -49,9 +49,9 @@ class Dispatcher:
         return request
 
     def _pulse_handler(self, request: dict):
+        logger.debug(f'Pulse request received {request["id"]}')
         agent = self.agents[request['id']]
         reply = agent.sync(request)
-        reply['reply'] = {'status': 'ok'}
         return reply
 
 

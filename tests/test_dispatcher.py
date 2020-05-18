@@ -5,7 +5,7 @@ from datetime import datetime
 import pytest
 
 from common.connection import RequestConnection
-from common.request_types import register
+from common.request_types import register, pulse
 from dispatcher.dispatcher import Dispatcher
 from tests.settings import DISPATCHER_PORT
 
@@ -61,4 +61,22 @@ def test_dispatcher_register(dispatcher):
                                                  'dispatcher agents list'
         now = datetime.utcnow()
         last_sync = dispatcher.agents[expected_id].last_sync
-        assert 1 > (now - last_sync).seconds, 'Wrong time is set in agent'
+        assert 0.1 > (now - last_sync).seconds, 'Request-Reply sync timestamp' \
+                                                'differs more than expected'
+
+
+def test_dispatcher_pulse(dispatcher):
+    with RequestConnection(port=DISPATCHER_PORT) as request_connection:
+        register_req = deepcopy(register)
+        request_connection.socket.send_json(register_req)
+        dispatcher.listen(1, polling_expiration)
+        reply = request_connection.socket.recv_json()
+        for _ in range(10):
+            pulse_req = deepcopy(pulse)
+            pulse_req['id'] = reply['id']
+            request_connection.socket.send_json(pulse_req)
+            dispatcher.listen(1, polling_expiration)
+            reply = request_connection.socket.recv_json()
+            assert reply['id'] == pulse_req['id'], 'Wrong ID is set in ' \
+                                                   'pulse reply'
+            assert 'ok' == reply['reply']['status'], 'Wrong reply status'
