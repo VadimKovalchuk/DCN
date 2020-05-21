@@ -67,11 +67,18 @@ class RequestConnection(Connection):
         logger.info(f'Establishing connection to: {address}')
         self.socket.connect(address)
 
-    def send(self, message: dict, timeout: int = 60):  # timeout in seconds
+    def send(self, message: dict, timeout: int = 30,  # timeout in seconds
+             callback: Callable = None):
         self.socket.send_json(message)
-        return self.socket.recv_json()
+        if callback:
+            callback()
+        if self.socket.poll(timeout * 1000):
+            return self.socket.recv_json()
+        else:
+            raise TimeoutError('No reply for Agent request')
 
     def close(self):
+        logger.info(f'Closing {self}')
         self.socket.close()
 
     def __str__(self):
@@ -91,15 +98,16 @@ class ReplyConnection(Connection):
         logger.info(f'Binding port for listening: {address}')
         self.socket.bind(address)
 
-    def listen(self, callback: Callable, timeout: int = 30):
+    def listen(self, request_handler: Callable, timeout: int = 30):
         if self.socket.poll(timeout * 1000):
             request = self.socket.recv_json()
-            self.socket.send_json(callback(request))
+            self.socket.send_json(request_handler(request))
             return True
         else:
             return False
 
     def close(self):
+        logger.info(f'Closing {self}')
         self.socket.close()
 
     def __str__(self):

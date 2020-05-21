@@ -2,11 +2,10 @@ import logging
 from copy import deepcopy
 from datetime import datetime
 
-import pytest
-
 from common.connection import RequestConnection
 from common.request_types import register, pulse
-from dispatcher.dispatcher import Dispatcher
+from tests.conftest import polling_expiration
+
 from tests.settings import DISPATCHER_PORT
 
 logger = logging.getLogger(__name__)
@@ -21,23 +20,12 @@ def dummy_request_handler(request: dict):
     return request
 
 
-def polling_expiration(is_expired: bool):
-    assert is_expired, "Dispatcher haven't got request when expected"
-    return True
-
-
-@pytest.fixture
-def dispatcher():
-    with Dispatcher(port=DISPATCHER_PORT) as dispatcher:
-        yield dispatcher
-
-
 def test_dispatcher_connection(dispatcher):
     with RequestConnection(port=DISPATCHER_PORT) as request_connection:
         logger.debug('Sending test message')
         request_connection.socket.send_json(TEST_MESSAGE)
         dispatcher.request_handler = dummy_request_handler
-        dispatcher.listen(1, polling_expiration)
+        dispatcher.listen(1)
         logger.debug('Waiting for response')
         reply = request_connection.socket.recv_json()
         assert reply == TEST_MESSAGE, 'Test message in request is modified ' \
@@ -52,9 +40,10 @@ def test_dispatcher_register(dispatcher):
         register_req['name'] = name
         expected_id = dispatcher._next_free_id
         request_connection.socket.send_json(register_req)
-        dispatcher.listen(1, polling_expiration)
+        dispatcher.listen(1)
         logger.debug('Waiting for response')
         reply = request_connection.socket.recv_json()
+        assert reply['result'], 'Registration was not successful'
         assert reply['id'] == expected_id, 'Wrong agent id is assigned'
         assert reply['name'] == name, 'Agent id was modified'
         assert expected_id in dispatcher.agents, 'Agent is missing in ' \
@@ -69,13 +58,13 @@ def test_dispatcher_pulse(dispatcher):
     with RequestConnection(port=DISPATCHER_PORT) as request_connection:
         register_req = deepcopy(register)
         request_connection.socket.send_json(register_req)
-        dispatcher.listen(1, polling_expiration)
+        dispatcher.listen(1)
         reply = request_connection.socket.recv_json()
         for _ in range(10):
             pulse_req = deepcopy(pulse)
             pulse_req['id'] = reply['id']
             request_connection.socket.send_json(pulse_req)
-            dispatcher.listen(1, polling_expiration)
+            dispatcher.listen(1)
             reply = request_connection.socket.recv_json()
             assert reply['id'] == pulse_req['id'], 'Wrong ID is set in ' \
                                                    'pulse reply'

@@ -2,9 +2,13 @@ import abc
 from copy import deepcopy
 from datetime import datetime
 from time import sleep
+from typing import Callable
+import logging
 
 from common.connection import RequestConnection
 from common.request_types import register, pulse
+
+logger = logging.getLogger(__name__)
 
 
 class AgentBase:
@@ -13,7 +17,7 @@ class AgentBase:
         self.last_sync = datetime.utcnow()
 
     @abc.abstractmethod
-    def sync(self):
+    def sync(self, reply: dict):
         ...
 
     def __str__(self):
@@ -24,6 +28,7 @@ class Agent(AgentBase):
     def __init__(self,
                  dsp_ip: str = 'localhost',
                  dsp_port: int = 9999):
+        logger.info('Starting Agent')
         super(Agent, self).__init__()
         self.socket = RequestConnection(dsp_ip, dsp_port)
 
@@ -32,6 +37,13 @@ class Agent(AgentBase):
 
     def __exit__(self, *exc_info):
         self.socket.close()
+
+    def register(self, callback: Callable = None):
+        request = deepcopy(register)
+        reply = self.socket.send(request, callback=callback)
+        if reply['result']:
+            self.id = reply['id']
+            self.sync(reply)
 
     def sync(self, reply: dict):
         self.last_sync = datetime.utcnow()

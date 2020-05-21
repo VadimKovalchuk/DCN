@@ -2,12 +2,38 @@ import logging
 from pathlib import Path
 import shutil
 
+import pytest
+
+from agent.agent import Agent
+from dispatcher.dispatcher import Dispatcher
+from tests.settings import DISPATCHER_PORT
+
 logger = logging.getLogger(__name__)
 
 log_file_formatter = None
 cur_log_handler = None
 cur_artifacts_path = None
 
+
+def polling_expiration(is_expired: bool):
+    assert is_expired, "Dispatcher haven't got request when expected"
+    return True
+
+
+@pytest.fixture
+def dispatcher():
+    with Dispatcher(port=DISPATCHER_PORT) as dispatcher:
+        dispatcher._interrupt = polling_expiration
+        yield dispatcher
+
+
+@pytest.fixture
+def agent():
+    with Agent(dsp_port=DISPATCHER_PORT) as agent:
+        yield agent
+
+
+# PYTEST HOOKS
 def pytest_sessionstart(session):
     global log_file_formatter
     log_file_formatter = logging.Formatter(

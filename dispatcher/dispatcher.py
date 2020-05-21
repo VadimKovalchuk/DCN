@@ -18,6 +18,7 @@ class Dispatcher:
         self.request_handler = self.default_request_handler
         self._next_free_id = 1001
         self._listen = True
+        self._interrupt = None
 
     def __enter__(self):
         return self
@@ -26,10 +27,10 @@ class Dispatcher:
         logger.info(f'Closing Dispatcher connection:{self.connection}')
         self.connection.close()
 
-    def listen(self, polling_timeout: int = 30, interrupt: Callable = None):
+    def listen(self, polling_timeout: int = 30):
         while self._listen:
             expired = self.connection.listen(self.request_handler, polling_timeout)
-            if interrupt and interrupt(expired):
+            if self._interrupt and self._interrupt(expired):
                 break
 
     def default_request_handler(self, request: dict):
