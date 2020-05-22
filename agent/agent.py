@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 class AgentBase:
     def __init__(self):
         self.id = 0
+        self.name = ''
         self.last_sync = datetime.utcnow()
 
     @abc.abstractmethod
@@ -40,10 +41,19 @@ class Agent(AgentBase):
 
     def register(self, callback: Callable = None):
         request = deepcopy(register)
+        if self.name:
+            request['name'] = self.name
         reply = self.socket.send(request, callback=callback)
         if reply['result']:
             self.id = reply['id']
             self.sync(reply)
+
+    def pulse(self, callback: Callable = None) -> bool:
+        request = deepcopy(pulse)
+        request['id'] = self.id
+        reply = self.socket.send(request, callback=callback)
+        self.sync(reply)
+        return reply['reply']['status']
 
     def sync(self, reply: dict):
         self.last_sync = datetime.utcnow()

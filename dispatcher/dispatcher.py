@@ -44,7 +44,9 @@ class Dispatcher:
     def _register_handler(self, request: dict):
         logger.debug(f'Registration request received {request["name"]}')
         request['id'] = self._next_free_id
-        self.agents[self._next_free_id] = RemoteAgent(self._next_free_id)
+        agent = RemoteAgent(self._next_free_id)
+        agent.name = request['name']
+        self.agents[self._next_free_id] = agent
         request['result'] = True
         self._next_free_id += 1
         return request

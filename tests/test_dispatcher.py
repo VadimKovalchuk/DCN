@@ -4,7 +4,6 @@ from datetime import datetime
 
 from common.connection import RequestConnection
 from common.request_types import register, pulse
-from tests.conftest import polling_expiration
 
 from tests.settings import DISPATCHER_PORT
 
@@ -45,12 +44,13 @@ def test_dispatcher_register(dispatcher):
         reply = request_connection.socket.recv_json()
         assert reply['result'], 'Registration was not successful'
         assert reply['id'] == expected_id, 'Wrong agent id is assigned'
-        assert reply['name'] == name, 'Agent id was modified'
         assert expected_id in dispatcher.agents, 'Agent is missing in ' \
                                                  'dispatcher agents list'
+        assert dispatcher.agents[expected_id].name == name, 'Agent name does not ' \
+            'corresponds to expected one'
         now = datetime.utcnow()
         last_sync = dispatcher.agents[expected_id].last_sync
-        assert 0.1 > (now - last_sync).seconds, 'Request-Reply sync timestamp' \
+        assert 0.01 > (now - last_sync).seconds, 'Request-Reply sync timestamp' \
                                                 'differs more than expected'
 
 
@@ -66,6 +66,4 @@ def test_dispatcher_pulse(dispatcher):
             request_connection.socket.send_json(pulse_req)
             dispatcher.listen(1)
             reply = request_connection.socket.recv_json()
-            assert reply['id'] == pulse_req['id'], 'Wrong ID is set in ' \
-                                                   'pulse reply'
             assert 'ok' == reply['reply']['status'], 'Wrong reply status'
