@@ -39,6 +39,9 @@ class Agent(AgentBase):
     def __exit__(self, *exc_info):
         self.socket.close()
 
+    def connect(self):
+        self.socket.establish()
+
     def register(self, callback: Callable = None):
         request = deepcopy(register)
         if self.name:

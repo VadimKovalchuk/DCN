@@ -3,22 +3,25 @@ from typing import Callable, Union
 
 from agent import RemoteAgent
 from common.connection import ReplyConnection
+from common.broker import Broker
 from common.request_types import Commands
 
 logger = logging.getLogger(__name__)
 
 
 class Dispatcher:
-    def __init__(self, ip: str = '*',
-                 port: Union[int, str] = ''):
+    def __init__(self,
+                 ip: str = '*',
+                 port: Union[int, str] = '',
+                 broker_host: str = ''):
         logger.info('Starting Dispatcher')
         self.connection = ReplyConnection(ip, port)
-        self.broker = None  # NOT IMPLEMENTED
+        self.broker = Broker(broker_host if broker_host else ip)
         self.agents = {}
         self.request_handler = self.default_request_handler
         self._next_free_id = 1001
         self._listen = True
-        self._interrupt = None
+        self._interrupt: Union[None, Callable] = None
 
     def __enter__(self):
         return self
@@ -26,6 +29,11 @@ class Dispatcher:
     def __exit__(self, *exc_info):
         logger.info(f'Closing Dispatcher connection:{self.connection}')
         self.connection.close()
+        self.broker.close()
+
+    def connect(self):
+        self.connection.establish()
+        self.broker.connect()
 
     def listen(self, polling_timeout: int = 30):
         while self._listen:

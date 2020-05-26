@@ -23,6 +23,7 @@ def polling_expiration(is_expired: bool):
 @pytest.fixture
 def dispatcher():
     with Dispatcher(port=DISPATCHER_PORT) as dispatcher:
+        dispatcher.connect()
         dispatcher._interrupt = polling_expiration
         yield dispatcher
 
@@ -30,6 +31,7 @@ def dispatcher():
 @pytest.fixture
 def agent():
     with Agent(dsp_port=DISPATCHER_PORT) as agent:
+        agent.connect()
         yield agent
 
 

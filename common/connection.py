@@ -60,7 +60,6 @@ class RequestConnection(Connection):
                  port: Union[int, str] = ''):
         super(RequestConnection, self).__init__(ip, port)
         self.socket = self.context.socket(zmq.REQ)
-        self.establish()
 
     def establish(self):
         address = f'tcp://{self.ip}:{self.port}'
@@ -91,7 +90,6 @@ class ReplyConnection(Connection):
                  port: Union[int, str] = ''):
         super(ReplyConnection, self).__init__(ip, port)
         self.socket = self.context.socket(zmq.REP)
-        self.establish()
 
     def establish(self):
         address = f'tcp://{self.ip}:{self.port}'
