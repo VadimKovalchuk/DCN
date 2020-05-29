@@ -20,7 +20,6 @@ def processing_callback(method, properties, task):
 
 def validator_callback(method, properties, task):
     assert test_tasks[task['id']]['task'] == task['result'], 'Task differs from expected one'
-    return False
 
 
 def test_broker_smoke():
@@ -36,12 +35,15 @@ def test_broker_smoke():
                       output_queue=task_result_queue)
         agent._inactivity_timeout = 0.1
         logger.info('Processing task')
-        agent.pull(processing_callback)
+        for mtd, prop, task in agent.pull():
+            result = processing_callback(mtd, prop, task)
+            agent.push(result)
     with Broker('localhost') as validator:
         validator.connect()
         validator.declare(input_queue=task_result_queue)
         validator._inactivity_timeout = 0.1
         logger.info('Validating results')
-        validator.pull(validator_callback)
+        for mtd, prop, task in validator.pull():
+            validator_callback(mtd, prop, task)
 
 

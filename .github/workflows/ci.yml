@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       rabbitmq:
-        image: rabbitmq
+        image: rabbitmq:3.8.4
         ports:
           - 5672:5672
     steps:
