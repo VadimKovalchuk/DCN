@@ -17,6 +17,13 @@ pulse = {
     'reply': {}
 }
 
+get_client_queues = {
+    'name': '',
+    'token': '',
+    'task_queue': '',
+    'result_queue': ''
+}
+
 task = {}
 
 task_report = {}
