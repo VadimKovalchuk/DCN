@@ -34,6 +34,7 @@ class Dispatcher:
     def connect(self):
         self.connection.establish()
         self.broker.connect()
+        self.broker.declare('client_requested', 'tasks')
 
     def listen(self, polling_timeout: int = 30):
         while self._listen:
@@ -44,8 +45,11 @@ class Dispatcher:
     def default_request_handler(self, request: dict):
         commands = {
             Commands.register: self._register_handler,
-            Commands.pulse: self._pulse_handler
+            Commands.pulse: self._pulse_handler,
+            Commands.client_queues: self._client_handler
         }
+        assert request['command'] in commands, 'Command ' \
+            f'{request["command"]} is not registered in dispatcher request handler'
         command = commands[request['command']]
         return command(request)
 
@@ -64,6 +68,13 @@ class Dispatcher:
         agent = self.agents[request['id']]
         reply = agent.sync(request)
         return reply
+
+    def _client_handler(self, request: dict):
+        logger.debug(f'Client {request["name"]} requested queues')
+        request['broker'] = self.broker.host
+        request['task_queue'] = 'client_requested'
+        request['result_queue'] = request['name']
+        return request
 
 
 def main():

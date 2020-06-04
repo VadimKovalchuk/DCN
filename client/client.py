@@ -4,7 +4,7 @@ from typing import Callable
 
 from common.broker import Broker
 from common.connection import RequestConnection
-from common.request_types import get_client_queues
+from common.request_types import client_queues
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +19,7 @@ class Client:
         self.name = name
         self.token = token
         self.socket = RequestConnection(dsp_ip, dsp_port)
-        self.broker = Broker(dsp_ip)
-        self.task_queue = None
-        self.result_queue = None
+        self.broker = None
 
     def __enter__(self):
         return self
@@ -33,12 +31,15 @@ class Client:
         self.socket.establish()
 
     def get_client_queues(self, callback: Callable = None):
-        request = deepcopy(get_client_queues)
+        request = deepcopy(client_queues)
         request['name'] = self.name
         request['token'] = self.token
         reply = self.socket.send(request, callback=callback)
-        self.broker.output_queue = reply['task_queue']
-        self.broker.input_queue = reply['result_queue']
+        if all((reply['broker'], reply['result_queue'], reply['task_queue'])):
+            self.broker = Broker(reply['broker'])
+            self.broker.declare(reply['result_queue'], reply['task_queue'])
+        else:
+            ConnectionRefusedError('Invalid credentials or resource is busy')
 
     def push_task(self, task: dict) -> bool:
         self.broker.push(task)

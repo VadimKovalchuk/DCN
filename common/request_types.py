@@ -1,11 +1,12 @@
 class Commands:
     register = 'register'
     pulse = 'pulse'
+    client_queues = 'client_queues'
 
 
 register = {
     'id': 0,
-    'command': 'register',
+    'command': Commands.register,
     'type': 'unified',
     'name': '',
     'result': False
@@ -13,13 +14,15 @@ register = {
 
 pulse = {
     'id': 0,
-    'command': 'pulse',
+    'command': Commands.pulse,
     'reply': {}
 }
 
-get_client_queues = {
+client_queues = {
+    'command': Commands.client_queues,
     'name': '',
     'token': '',
+    'broker': '',
     'task_queue': '',
     'result_queue': ''
 }
