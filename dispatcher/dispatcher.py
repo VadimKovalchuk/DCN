@@ -70,7 +70,7 @@ class Dispatcher:
         return reply
 
     def _client_handler(self, request: dict):
-        logger.debug(f'Client {request["name"]} requested queues')
+        logger.debug(f'Client queues are requested by: {request["name"]}')
         request['broker'] = self.broker.host
         request['task_queue'] = 'client_requested'
         request['result_queue'] = request['name']

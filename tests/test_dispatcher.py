@@ -24,13 +24,9 @@ def test_dsp_agent_connection(dispatcher):
     with RequestConnection(port=DISPATCHER_PORT) as request_connection:
         request_connection.establish()
         logger.info('Sending test message')
-        request_connection.socket.send_json(TEST_MESSAGE)
-        logger.info('Setting handler')
         dispatcher.request_handler = dummy_request_handler
-        logger.info('call listen')
-        dispatcher.listen(1)
-        logger.info('Waiting for response')
-        reply = request_connection.socket.recv_json()
+        callback = partial(dispatcher.listen, 1)
+        reply = request_connection.send(TEST_MESSAGE, 1, callback)
         assert reply == TEST_MESSAGE, 'Test message in request is modified ' \
                                       'between "request_handler" and "reply"'
 
@@ -75,6 +71,11 @@ def test_dsp_client_queue(dispatcher):
     with RequestConnection(port=DISPATCHER_PORT) as request_connection:
         request_connection.establish()
         request = deepcopy(client_queues)
+        request['name'] = 'test_dsp_client_queue'
         callback = partial(dispatcher.listen, 1)
         reply = request_connection.send(request, 1, callback)
-        logger.warning(reply)
+        assert reply['name'] == request['name'], \
+            'Name param is modified or wrong reply'
+        assert reply['result_queue'] == request['name'], \
+            'Wrong result queue name is defined by dispatcher'
+        assert reply['task_queue'] == 'client_requested'
