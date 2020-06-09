@@ -5,6 +5,7 @@ import shutil
 import pytest
 
 from agent.agent import Agent
+from client.client import Client
 from dispatcher.dispatcher import Dispatcher
 from tests.settings import DISPATCHER_PORT
 
@@ -31,6 +32,13 @@ def dispatcher():
 @pytest.fixture
 def agent():
     with Agent(dsp_port=DISPATCHER_PORT) as agent:
+        agent.connect()
+        yield agent
+
+
+@pytest.fixture
+def client():
+    with Client(dsp_port=DISPATCHER_PORT) as agent:
         agent.connect()
         yield agent
 

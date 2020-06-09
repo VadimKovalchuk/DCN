@@ -34,7 +34,7 @@ class Dispatcher:
     def connect(self):
         self.connection.establish()
         self.broker.connect()
-        self.broker.declare('client_requested', 'tasks')
+        self.broker.declare('client_requested', 'task')
 
     def listen(self, polling_timeout: int = 30):
         while self._listen:
@@ -58,6 +58,9 @@ class Dispatcher:
         request['id'] = self._next_free_id
         agent = RemoteAgent(self._next_free_id)
         agent.name = request['name']
+        request['broker']['host'] = self.broker.host
+        request['broker']['task'] = 'task'
+        request['broker']['result'] = 'result'
         self.agents[self._next_free_id] = agent
         request['result'] = True
         self._next_free_id += 1

@@ -5,6 +5,7 @@ from time import sleep
 from typing import Callable
 import logging
 
+from common.broker import Broker
 from common.connection import RequestConnection
 from common.request_types import register, pulse
 
@@ -32,6 +33,7 @@ class Agent(AgentBase):
         logger.info('Starting Agent')
         super(Agent, self).__init__()
         self.socket = RequestConnection(dsp_ip, dsp_port)
+        self.broker = None
 
     def __enter__(self):
         return self
@@ -50,6 +52,10 @@ class Agent(AgentBase):
         if reply['result']:
             self.id = reply['id']
             self.sync(reply)
+            self.broker = Broker(reply['broker']['host'])
+            self.broker.connect()
+            self.broker.declare(reply['broker']['task'],
+                                reply['broker']['result'])
 
     def pulse(self, callback: Callable = None) -> bool:
         request = deepcopy(pulse)

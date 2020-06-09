@@ -9,6 +9,11 @@ register = {
     'command': Commands.register,
     'type': 'unified',
     'name': '',
+    'broker': {
+        'host': '',
+        'task': '',
+        'result': ''
+    },
     'result': False
 }
 
@@ -27,7 +32,11 @@ client_queues = {
     'result_queue': ''
 }
 
-task = {}
+task = {
+    'module': 'builtin',
+    'function': 'dummy',
+    'arguments': None
+}
 
 task_report = {}
 
