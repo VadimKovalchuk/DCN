@@ -31,4 +31,7 @@ def test_agent_queues(dispatcher, agent):
     dispatcher.broker.push(test_task)
     interrupt = partial(dispatcher.listen, 1)
     agent.register(interrupt)
-
+    out = agent.broker.pull()
+    (method, properties, task_from_queue) = next(out)
+    logger.debug(task_from_queue)
+    assert test_task == task_from_queue, 'Wrong task is received from task queue'
