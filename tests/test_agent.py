@@ -2,7 +2,7 @@ from copy import deepcopy
 from functools import partial
 import logging
 
-from common.request_types import task
+from common.request_types import Task
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +26,8 @@ def test_agent_pulse(dispatcher, agent):
 
 
 def test_agent_queues(dispatcher, agent):
-    test_task = deepcopy(task)
-    test_task['arguments'] = 'test'
+    test_task = deepcopy(Task)
+    test_task['arguments'] = 'agent_task_test'
     dispatcher.broker.push(test_task)
     interrupt = partial(dispatcher.listen, 1)
     agent.register(interrupt)

@@ -4,7 +4,7 @@ from typing import Callable
 
 from common.broker import Broker
 from common.connection import RequestConnection
-from common.request_types import client_queues
+from common.request_types import Client_queues
 
 logger = logging.getLogger(__name__)
 
@@ -31,12 +31,13 @@ class Client:
         self.socket.establish()
 
     def get_client_queues(self, callback: Callable = None):
-        request = deepcopy(client_queues)
+        request = deepcopy(Client_queues)
         request['name'] = self.name
         request['token'] = self.token
         reply = self.socket.send(request, callback=callback)
         if all((reply['broker'], reply['result_queue'], reply['task_queue'])):
             self.broker = Broker(reply['broker'])
+            self.broker.connect()
             self.broker.declare(reply['result_queue'], reply['task_queue'])
         else:
             ConnectionRefusedError('Invalid credentials or resource is busy')

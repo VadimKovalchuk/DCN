@@ -4,7 +4,7 @@ from datetime import datetime
 from functools import partial
 
 from common.connection import RequestConnection
-from common.request_types import register, pulse, client_queues
+from common.request_types import Register, Pulse, Client_queues
 
 from tests.settings import DISPATCHER_PORT
 
@@ -37,7 +37,7 @@ def test_dsp_register(dispatcher):
         request_connection.establish()
         request_connection.establish()
         logger.info('Sending registration message')
-        register_req = deepcopy(register)
+        register_req = deepcopy(Register)
         register_req['name'] = name
         expected_id = dispatcher._next_free_id
         callback = partial(dispatcher.listen, 1)
@@ -57,11 +57,11 @@ def test_dsp_register(dispatcher):
 def test_dsp_pulse(dispatcher):
     with RequestConnection(port=DISPATCHER_PORT) as request_connection:
         request_connection.establish()
-        register_req = deepcopy(register)
+        register_req = deepcopy(Register)
         callback = partial(dispatcher.listen, 1)
         reply = request_connection.send(register_req, 1, callback)
         for _ in range(10):
-            pulse_req = deepcopy(pulse)
+            pulse_req = deepcopy(Pulse)
             pulse_req['id'] = reply['id']
             reply = request_connection.send(pulse_req, 1, callback)
             assert 'ok' == reply['reply']['status'], 'Wrong reply status'
@@ -70,7 +70,7 @@ def test_dsp_pulse(dispatcher):
 def test_dsp_client_queue(dispatcher):
     with RequestConnection(port=DISPATCHER_PORT) as request_connection:
         request_connection.establish()
-        request = deepcopy(client_queues)
+        request = deepcopy(Client_queues)
         request['name'] = 'test_dsp_client_queue'
         callback = partial(dispatcher.listen, 1)
         reply = request_connection.send(request, 1, callback)

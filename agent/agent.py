@@ -7,7 +7,7 @@ import logging
 
 from common.broker import Broker
 from common.connection import RequestConnection
-from common.request_types import register, pulse
+from common.request_types import Register, Pulse
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class Agent(AgentBase):
         self.socket.establish()
 
     def register(self, callback: Callable = None):
-        request = deepcopy(register)
+        request = deepcopy(Register)
         if self.name:
             request['name'] = self.name
         reply = self.socket.send(request, callback=callback)
@@ -58,7 +58,7 @@ class Agent(AgentBase):
                                 reply['broker']['result'])
 
     def pulse(self, callback: Callable = None) -> bool:
-        request = deepcopy(pulse)
+        request = deepcopy(Pulse)
         request['id'] = self.id
         reply = self.socket.send(request, callback=callback)
         self.sync(reply)
@@ -83,13 +83,13 @@ class RemoteAgent(AgentBase):
 def main():
     connection = RequestConnection(port=9999)
     print("Connecting to dispatcher")
-    reply = connection.send(register)
+    reply = connection.send(Register)
     print(reply)
     if reply and reply['result']:
         agent_id = reply['id']
     else:
         assert False, 'Failed to get ID'
-    _pulse = deepcopy(pulse)
+    _pulse = deepcopy(Pulse)
     _pulse['id'] = agent_id
     #  Do 10 requests, waiting each time for a response
     for request in range(10):

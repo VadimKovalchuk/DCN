@@ -1,12 +1,12 @@
 class Commands:
-    register = 'register'
-    pulse = 'pulse'
-    client_queues = 'client_queues'
+    Register = 'register'
+    Pulse = 'pulse'
+    Client_queues = 'client_queues'
 
 
-register = {
+Register = {
     'id': 0,
-    'command': Commands.register,
+    'command': Commands.Register,
     'type': 'unified',
     'name': '',
     'broker': {
@@ -17,26 +17,25 @@ register = {
     'result': False
 }
 
-pulse = {
+Pulse = {
     'id': 0,
-    'command': Commands.pulse,
+    'command': Commands.Pulse,
     'reply': {}
 }
 
-client_queues = {
-    'command': Commands.client_queues,
-    'name': '',
+Client_queues = {
+    'command': Commands.Client_queues,
     'token': '',
     'broker': '',
     'task_queue': '',
     'result_queue': ''
 }
 
-task = {
+Task = {
     'module': 'builtin',
     'function': 'dummy',
     'arguments': None
 }
 
-task_report = {}
+Task_report = {}
 

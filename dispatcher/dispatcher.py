@@ -44,9 +44,9 @@ class Dispatcher:
 
     def default_request_handler(self, request: dict):
         commands = {
-            Commands.register: self._register_handler,
-            Commands.pulse: self._pulse_handler,
-            Commands.client_queues: self._client_handler
+            Commands.Register: self._register_handler,
+            Commands.Pulse: self._pulse_handler,
+            Commands.Client_queues: self._client_handler
         }
         assert request['command'] in commands, 'Command ' \
             f'{request["command"]} is not registered in dispatcher request handler'

@@ -27,9 +27,9 @@ class Broker:
         self.close()
 
     def connect(self):
-        logger.info('Broker connecting to server')
+        logger.info(f'Broker connecting to server: {self.host}')
         self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host='localhost'))
+            pika.ConnectionParameters(host=self.host))
         self.channel = self.connection.channel()
 
     def declare(self, input_queue: str = '', output_queue: str = ''):
