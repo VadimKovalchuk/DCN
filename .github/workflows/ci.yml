@@ -44,5 +44,7 @@ jobs:
     - name: Test Agent(Linux)
       run: |
         pytest tests/test_agent.py
-
-
+    - name: Test Client(Linux)
+      run: |
+        pytest tests/test_client.py
+          
