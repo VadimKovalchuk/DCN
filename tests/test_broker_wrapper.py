@@ -1,7 +1,7 @@
 import logging
 from random import random
 
-from common.broker import Broker
+from common.broker import Broker, Task
 
 logger = logging.getLogger(__name__)
 
@@ -10,16 +10,13 @@ task_result_queue = 'test_result'
 test_tasks = {i: {'id': i, 'task': random()} for i in range(10)}
 
 
-def processing_callback(method, properties, task):
-    if not all((method, properties, task)):
-        return False
-    else:
-        assert test_tasks[task['id']] == task, 'Task differs from expected one'
-        return {'id': task['id'], 'result': task['task']}
+def process_task(task: Task):
+    assert test_tasks[task.body['id']] == task.body, 'Task differs from expected one'
+    return {'id': task.body['id'], 'result': task.body['task']}
 
 
-def validator_callback(method, properties, task):
-    assert test_tasks[task['id']]['task'] == task['result'], 'Task differs from expected one'
+def validator_callback(task: Task):
+    assert test_tasks[task.body['id']]['task'] == task.body['result'], 'Task differs from expected one'
 
 
 def test_broker_smoke():
@@ -35,15 +32,15 @@ def test_broker_smoke():
                       output_queue=task_result_queue)
         agent._inactivity_timeout = 0.1
         logger.info('Processing task')
-        for mtd, prop, task in agent.pull():
-            result = processing_callback(mtd, prop, task)
+        for task in agent.pulling_generator():
+            result = process_task(task)
+            agent.set_task_done(task)
             agent.push(result)
     with Broker('localhost') as validator:
         validator.connect()
         validator.declare(input_queue=task_result_queue)
         validator._inactivity_timeout = 0.1
         logger.info('Validating results')
-        for mtd, prop, task in validator.pull():
-            validator_callback(mtd, prop, task)
-
-
+        for task in validator.pulling_generator():
+            validator_callback(task)
+            validator.set_task_done(task)

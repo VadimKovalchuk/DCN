@@ -42,12 +42,6 @@ class Client:
         else:
             ConnectionRefusedError('Invalid credentials or resource is busy')
 
-    def push_task(self, task: dict) -> bool:
-        self.broker.push(task)
-
-    def pull_result(self) -> dict:
-        return self.broker.pull()
-
 
 def main():
     ...

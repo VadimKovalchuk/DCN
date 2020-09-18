@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Callable
+from typing import Callable, Generator
 
 import pika
 
@@ -8,6 +8,26 @@ logger = logging.getLogger(__name__)
 logging.getLogger('pika').setLevel(logging.WARNING)
 # RabbitMQ running is required for this module operations
 # sudo docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3.8.4-management &
+
+
+def validate_task(method, properties, task_str):
+    if all((method, properties, task_str)):
+        try:
+            json.loads(task_str)
+        except TypeError:
+            logger.error(f'Invalid message content is received: {task_str}')
+            return False
+        else:
+            return True
+
+
+class Task:
+    def __init__(self, method: pika.spec.Basic.Deliver,
+                 properties: pika.spec.BasicProperties,
+                 body: str):
+        self.method = method
+        self.properties = properties
+        self.body = json.loads(body)
 
 
 class Broker:
@@ -50,25 +70,25 @@ class Broker:
         logger.debug(f'sending: {msg_str}')
         self.channel.basic_publish(exchange='', routing_key=self.output_queue, body=msg_str)
 
-    def pull(self):
+    def pulling_generator(self) -> Generator:
         if not self.input_queue:
             raise RuntimeError('Trying to pull task from queue '
                                'that not defined')
-        for method, properties, tsk_str in self.channel.consume(
+        for method, properties, task_str in self.channel.consume(
                 self.input_queue, inactivity_timeout=self._inactivity_timeout):
-            if not all((method, properties, tsk_str)):
+            logger.debug("Received: %r" % task_str)
+            if validate_task(method, properties, task_str):
+                yield Task(method, properties, task_str)
+            else:
                 self.channel.cancel()
                 break
-            logger.debug("Received: %r" % tsk_str)
-            try:
-                task = json.loads(tsk_str)
-            except TypeError:
-                logger.error(f'Invalid message content is received: {tsk_str}')
-                task = {}
-            yield method, properties, task
-            self.channel.basic_ack(method.delivery_tag)
+
+    def set_task_done(self, task: Task):
+        self.channel.basic_ack(task.method.delivery_tag)
 
     def close(self):
         logger.info('Closing broker connection')
         if self.connection:
             self.connection.close()
+
+
