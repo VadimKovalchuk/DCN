@@ -1,8 +1,13 @@
 import json
 import logging
+from time import sleep
 from typing import Callable, Generator
 
 import pika
+from pika.exceptions import AMQPConnectionError
+
+CONNECTION_RETRY_COUNT = 5
+RECONNECT_DELAY = 5  # seconds
 
 logger = logging.getLogger(__name__)
 logging.getLogger('pika').setLevel(logging.WARNING)
@@ -48,8 +53,19 @@ class Broker:
 
     def connect(self):
         logger.info(f'Broker connecting to server: {self.host}')
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host=self.host))
+        for _try in range(CONNECTION_RETRY_COUNT):
+            try:
+                self.connection = pika.BlockingConnection(
+                    pika.ConnectionParameters(host=self.host))
+            except AMQPConnectionError:
+                logger.error(f'Attempt #{_try + 1} has failed.')
+                sleep(RECONNECT_DELAY)
+            else:
+                break
+        else:
+            message = 'Broker server is not reachable.'
+            logger.error(message)
+            raise ConnectionError(message)
         self.channel = self.connection.channel()
 
     def declare(self, input_queue: str = '', output_queue: str = ''):
