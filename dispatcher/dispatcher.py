@@ -34,7 +34,7 @@ class Dispatcher:
     def connect(self):
         self.connection.establish()
         self.broker.connect()
-        self.broker.declare('client_requested', 'task')
+        # self.broker.declare('task', 'task')
 
     def listen(self, polling_timeout: int = 30):
         while self._listen:
@@ -54,7 +54,7 @@ class Dispatcher:
         return command(request)
 
     def _register_handler(self, request: dict):
-        logger.debug(f'Registration request received {request["name"]}')
+        logger.info(f'Registration request received {request["name"]}')
         request['id'] = self._next_free_id
         agent = RemoteAgent(self._next_free_id)
         agent.name = request['name']
@@ -62,6 +62,7 @@ class Dispatcher:
         request['broker']['task'] = 'task'
         request['broker']['result'] = 'result'
         self.agents[self._next_free_id] = agent
+        logger.info(f'New agent id={agent.id}')
         request['result'] = True
         self._next_free_id += 1
         return request
@@ -75,7 +76,7 @@ class Dispatcher:
     def _client_handler(self, request: dict):
         logger.debug(f'Client queues are requested by: {request["name"]}')
         request['broker'] = self.broker.host
-        request['task_queue'] = 'client_requested'
+        request['task_queue'] = 'task'  # client_requested
         request['result_queue'] = request['name']
         return request
 

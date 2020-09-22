@@ -2,6 +2,8 @@ from copy import deepcopy
 from functools import partial
 import logging
 
+from dispatcher.dispatcher import Dispatcher
+from common.broker import Broker
 from common.request_types import Task
 
 logger = logging.getLogger(__name__)
@@ -25,22 +27,19 @@ def test_agent_pulse(dispatcher, agent):
         assert agent.pulse(interrupt), 'Wrong reply status'
 
 
-def test_agent_queues(dispatcher, agent):
+def test_agent_queues(dispatcher, agent, broker):
     test_task = deepcopy(Task)
     test_task['arguments'] = 'agent_task_test'
-    broker = dispatcher.broker
-    broker.push(test_task)
-    broker.declare(input_queue='result')
-    interrupt = partial(dispatcher.listen, 1)
-    agent.register(interrupt)
-    task_queue = agent.broker.pulling_generator()
-    task = next(task_queue)
-    agent.broker.set_task_done(task)
-    assert test_task == task.body, 'Wrong task is received from task queue for Agent'
     task_result = deepcopy(Task)
     task_result['arguments'] = 'agent_task_result'
+    interrupt = partial(dispatcher.listen, 1)
+    broker.declare(input_queue='result', output_queue='task')
+    broker.push(test_task)
+    agent.register(interrupt)
+    task = next(agent.broker.pulling_generator())
+    agent.broker.set_task_done(task)
+    assert test_task == task.body, 'Wrong task is received from task queue for Agent'
     agent.broker.push(task_result)
-    result_queue = broker.pulling_generator()
-    result = next(result_queue)
+    result = next(broker.pulling_generator())
     broker.set_task_done(result)
     assert task_result == result.body, 'Wrong Agent result is received from task queue'

@@ -16,6 +16,7 @@ class AgentBase:
     def __init__(self):
         self.id = 0
         self.name = ''
+        self.token = ''
         self.last_sync = datetime.utcnow()
 
     @abc.abstractmethod
@@ -39,10 +40,15 @@ class Agent(AgentBase):
         return self
 
     def __exit__(self, *exc_info):
-        self.socket.close()
+        self.close()
 
     def connect(self):
         self.socket.establish()
+
+    def close(self):
+        if self.broker:
+            self.broker.close()
+        self.socket.close()
 
     def register(self, callback: Callable = None):
         request = deepcopy(Register)
@@ -66,6 +72,9 @@ class Agent(AgentBase):
 
     def sync(self, reply: dict):
         self.last_sync = datetime.utcnow()
+
+    def __str__(self):
+        return f'Agent: {self.name}({self.id})'
 
 
 class RemoteAgent(AgentBase):

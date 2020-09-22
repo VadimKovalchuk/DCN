@@ -7,9 +7,7 @@ from common.request_types import Task
 logger = logging.getLogger(__name__)
 
 
-def test_client_initialization(dispatcher, client):
-    broker = dispatcher.broker
-    broker._inactivity_timeout = 0.1
+def test_client_initialization(dispatcher, client, broker):
     name = 'client_test_name'
     client.name = name
     interrupt = partial(dispatcher.listen, 1)

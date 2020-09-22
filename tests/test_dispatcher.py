@@ -78,4 +78,4 @@ def test_dsp_client_queue(dispatcher):
             'Name param is modified or wrong reply'
         assert reply['result_queue'] == request['name'], \
             'Wrong result queue name is defined by dispatcher'
-        assert reply['task_queue'] == 'client_requested'
+        assert reply['task_queue'] == 'task'

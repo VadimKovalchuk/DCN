@@ -34,6 +34,9 @@ class Task:
         self.properties = properties
         self.body = json.loads(body)
 
+    def __str__(self):
+        return json.dumps(self.body, indent=4)
+
 
 class Broker:
     def __init__(self, host: str):
@@ -67,6 +70,7 @@ class Broker:
             logger.error(message)
             raise ConnectionError(message)
         self.channel = self.connection.channel()
+        self.channel.basic_qos(prefetch_count=1)
 
     def declare(self, input_queue: str = '', output_queue: str = ''):
         if not (input_queue or output_queue):
