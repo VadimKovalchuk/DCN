@@ -7,7 +7,19 @@ from common.request_types import Task
 logger = logging.getLogger(__name__)
 
 
-def test_client_initialization(dispatcher, client, broker):
+def test_client_initialization(dispatcher, client):
+    client.name = 'client_test_name'
+    interrupt = partial(dispatcher.listen, 1)
+    client.get_client_queues(interrupt)
+    assert client.broker, 'Broker instance is missing'
+    assert client.broker.output_queue == 'task', \
+        'Output queue is not "task"'
+    assert client.broker.input_queue == client.name, \
+        'Input queue does not corresponds to client name ' \
+        f'{client.name}'
+
+
+def test_client_queues(dispatcher, client, broker):
     name = 'client_test_name'
     client.name = name
     interrupt = partial(dispatcher.listen, 1)

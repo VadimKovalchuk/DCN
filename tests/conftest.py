@@ -1,6 +1,7 @@
 import logging
 import shutil
 
+from functools import partial
 from pathlib import Path
 from typing import Union
 
@@ -74,12 +75,28 @@ def agent():
             flush_queue(agent.broker.host, agent.broker.input_queue)
 
 
+@pytest.fixture()
+def agent_on_dispatcher(agent: Agent, dispatcher: Dispatcher):
+    interrupt = partial(dispatcher.listen, 1)
+    agent.register(interrupt)
+    agent.broker._inactivity_timeout = 0.1  # seconds
+    yield agent
+
+
 @pytest.fixture
 def client():
     with Client(dsp_port=DISPATCHER_PORT) as client:
         client.connect()
         yield client
         flush_queue(client.broker.host, client.broker.input_queue)
+
+
+@pytest.fixture()
+def client_on_dispatcher(client: Client, dispatcher: Dispatcher):
+    interrupt = partial(dispatcher.listen, 1)
+    client.register(interrupt)
+    client.broker._inactivity_timeout = 0.1  # seconds
+    yield client
 
 
 # PYTEST HOOKS
