@@ -9,7 +9,6 @@ from agent.agent import Agent
 from client.client import Client
 from common.broker import Broker, Task
 from dispatcher.dispatcher import Dispatcher
-from tests.conftest import flush_queue
 from tests.settings import DISPATCHER_PORT
 
 logger = logging.getLogger(__name__)

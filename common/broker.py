@@ -1,13 +1,15 @@
 import json
 import logging
 from time import sleep
-from typing import Callable, Generator
+from typing import Generator, Union
 
 import pika
 from pika.exceptions import AMQPConnectionError
 
-CONNECTION_RETRY_COUNT = 5
-RECONNECT_DELAY = 5  # seconds
+from common.constants import EXCHANGE, QUEUE, SECOND
+from common.data_structures import queue_template
+from common.defaults import CONNECTION_RETRY_COUNT, RECONNECT_DELAY,\
+    EXCHANGE_NAME, EXCHANGE_TYPE, RoutingKeys
 
 logger = logging.getLogger(__name__)
 logging.getLogger('pika').setLevel(logging.WARNING)
@@ -46,7 +48,7 @@ class Broker:
         self.channel = None
         self.input_queue = ''
         self.output_queue = ''
-        self._inactivity_timeout = 60  # seconds
+        self._inactivity_timeout = 60 * SECOND
 
     def __enter__(self):
         return self
@@ -72,15 +74,30 @@ class Broker:
         self.channel = self.connection.channel()
         self.channel.basic_qos(prefetch_count=1)
 
-    def declare(self, input_queue: str = '', output_queue: str = ''):
+    def setup_exchange(self,
+                       ex_name: str = EXCHANGE_NAME,
+                       ex_type: str = EXCHANGE_TYPE):
+        self.channel.exchange_declare(exchange=ex_name,
+                                      exchange_type=ex_type)
+        for queue in RoutingKeys.ALL_QUEUES:
+            self.channel.queue_declare(queue)
+            self.channel.queue_bind(exchange=EXCHANGE_NAME,
+                                    queue=queue,
+                                    routing_key=queue)
+
+    def declare(self, input_queue: Union[dict, None],
+                output_queue: Union[dict, None]):
         if not (input_queue or output_queue):
             raise RuntimeError('Queue is not defined for Broker')
         if input_queue:
+            in_q = input_queue[QUEUE]
             self.input_queue = input_queue
-            self.channel.queue_declare(queue=input_queue)
+            self.channel.queue_declare(queue=in_q)
+            self.channel.queue_bind(exchange=input_queue[EXCHANGE],
+                                    queue=in_q,
+                                    routing_key=in_q)
         if output_queue:
             self.output_queue = output_queue
-            self.channel.queue_declare(queue=output_queue)
 
     def push(self, message: dict):
         if not self.output_queue:
@@ -88,14 +105,17 @@ class Broker:
                                'that not defined')
         msg_str = json.dumps(message, indent=4)
         logger.debug(f'sending: {msg_str}')
-        self.channel.basic_publish(exchange='', routing_key=self.output_queue, body=msg_str)
+        self.channel.basic_publish(exchange=self.output_queue[EXCHANGE],
+                                   routing_key=self.output_queue[QUEUE],
+                                   body=msg_str)
 
     def pulling_generator(self) -> Generator:
         if not self.input_queue:
             raise RuntimeError('Trying to pull task from queue '
                                'that not defined')
         for method, properties, task_str in self.channel.consume(
-                self.input_queue, inactivity_timeout=self._inactivity_timeout):
+                self.input_queue[QUEUE],
+                inactivity_timeout=self._inactivity_timeout):
             logger.debug("Received: %r" % task_str)
             if validate_task(method, properties, task_str):
                 yield Task(method, properties, task_str)

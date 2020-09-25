@@ -1,9 +1,13 @@
+from copy import deepcopy
 import logging
 from typing import Callable, Union
 
 from agent import RemoteAgent
-from common.connection import ReplyConnection
 from common.broker import Broker
+from common.connection import ReplyConnection
+from common.constants import SECOND, QUEUE
+from common.data_structures import compose_queue
+from common.defaults import INIT_AGENT_ID, RoutingKeys
 from common.request_types import Commands
 
 logger = logging.getLogger(__name__)
@@ -19,7 +23,7 @@ class Dispatcher:
         self.broker = Broker(broker_host if broker_host else ip)
         self.agents = {}
         self.request_handler = self.default_request_handler
-        self._next_free_id = 1001
+        self._next_free_id = INIT_AGENT_ID
         self._listen = True
         self._interrupt: Union[None, Callable] = None
 
@@ -34,9 +38,10 @@ class Dispatcher:
     def connect(self):
         self.connection.establish()
         self.broker.connect()
-        # self.broker.declare('task', 'task')
+        self.broker.setup_exchange()
+        self.broker.input_queue = compose_queue(RoutingKeys.DISPATCHER)
 
-    def listen(self, polling_timeout: int = 30):
+    def listen(self, polling_timeout: int = 30 * SECOND):
         while self._listen:
             expired = self.connection.listen(self.request_handler, polling_timeout)
             if self._interrupt and self._interrupt(expired):
@@ -59,8 +64,8 @@ class Dispatcher:
         agent = RemoteAgent(self._next_free_id)
         agent.name = request['name']
         request['broker']['host'] = self.broker.host
-        request['broker']['task'] = 'task'
-        request['broker']['result'] = 'result'
+        request['broker']['task'] = compose_queue(RoutingKeys.TASK)
+        request['broker']['result'] = compose_queue(RoutingKeys.RESULTS)
         self.agents[self._next_free_id] = agent
         logger.info(f'New agent id={agent.id}')
         request['result'] = True
@@ -76,8 +81,8 @@ class Dispatcher:
     def _client_handler(self, request: dict):
         logger.debug(f'Client queues are requested by: {request["name"]}')
         request['broker'] = self.broker.host
-        request['task_queue'] = 'task'  # client_requested
-        request['result_queue'] = request['name']
+        request['task_queue'] = compose_queue(RoutingKeys.TASK)
+        request['result_queue'] = compose_queue(request['name'])
         return request
 
 

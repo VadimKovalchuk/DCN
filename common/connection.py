@@ -5,6 +5,8 @@ from typing import Union, Callable
 
 import zmq
 
+from common.defaults import DISPATCHER_PORT
+
 logger = logging.getLogger(__name__)
 
 
@@ -14,7 +16,7 @@ def is_port_in_use(port):
 
 
 class Connection:
-    port = 9999
+    port = DISPATCHER_PORT
 
     def __init__(self, ip: str, port: Union[int, str, None]):
         self.context = zmq.Context()
