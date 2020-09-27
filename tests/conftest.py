@@ -10,6 +10,9 @@ import pytest
 from agent.agent import Agent
 from client.client import Client
 from common.broker import Broker
+from common.constants import SECOND
+from common.data_structures import compose_queue
+from common.defaults import RoutingKeys
 from dispatcher.dispatcher import Dispatcher
 from tests.settings import DISPATCHER_PORT
 
@@ -19,9 +22,11 @@ log_file_formatter = None
 cur_log_handler = None
 cur_artifacts_path = None
 
+task_queue = compose_queue(RoutingKeys.TASK)
+
 
 def flush_queue(broker: str,
-                queue: str = 'task',
+                queue: dict = task_queue,
                 assert_non_empty: bool = True):
     with Broker(broker) as br:
         br.connect()
@@ -44,12 +49,12 @@ def polling_expiration(is_expired: bool):
 @pytest.fixture
 def broker():
     host = '*'
-    input_queue = 'task'
     with Broker(host) as broker:
         broker.connect()
         broker._interrupt = polling_expiration
-        broker._inactivity_timeout = 0.1  # seconds
-        broker.declare(input_queue=input_queue, output_queue='result')
+        broker._inactivity_timeout = 0.1 * SECOND
+        broker.declare(input_queue=task_queue,
+                       output_queue=compose_queue(RoutingKeys.RESULTS))
         yield broker
         input_queue = broker.input_queue
     flush_queue(host, input_queue)
@@ -60,7 +65,7 @@ def dispatcher():
     with Dispatcher(port=DISPATCHER_PORT) as dispatcher:
         dispatcher.connect()
         dispatcher._interrupt = polling_expiration
-        dispatcher.broker._inactivity_timeout = 0.1  # seconds
+        dispatcher.broker._inactivity_timeout = 0.1 * SECOND
         flush_queue(dispatcher.broker.host, assert_non_empty=False)
         yield dispatcher
         flush_queue(dispatcher.broker.host)
@@ -79,7 +84,7 @@ def agent():
 def agent_on_dispatcher(agent: Agent, dispatcher: Dispatcher):
     interrupt = partial(dispatcher.listen, 1)
     agent.register(interrupt)
-    agent.broker._inactivity_timeout = 0.1  # seconds
+    agent.broker._inactivity_timeout = 0.1 * SECOND
     yield agent
 
 
@@ -95,7 +100,7 @@ def client():
 def client_on_dispatcher(client: Client, dispatcher: Dispatcher):
     interrupt = partial(dispatcher.listen, 1)
     client.register(interrupt)
-    client.broker._inactivity_timeout = 0.1  # seconds
+    client.broker._inactivity_timeout = 0.1 * SECOND
     yield client
 
 

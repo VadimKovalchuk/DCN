@@ -85,8 +85,8 @@ class Broker:
                                     queue=queue,
                                     routing_key=queue)
 
-    def declare(self, input_queue: Union[dict, None],
-                output_queue: Union[dict, None]):
+    def declare(self, input_queue: Union[dict, None] = None,
+                output_queue: Union[dict, None] = None):
         if not (input_queue or output_queue):
             raise RuntimeError('Queue is not defined for Broker')
         if input_queue:

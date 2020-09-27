@@ -8,13 +8,15 @@ from typing import Callable, Union
 from agent.agent import Agent
 from client.client import Client
 from common.broker import Broker, Task
+from common.data_structures import compose_queue
+from common.defaults import RoutingKeys
 from dispatcher.dispatcher import Dispatcher
 from tests.settings import DISPATCHER_PORT
 
 logger = logging.getLogger(__name__)
 
-task_input_queue = 'test_task'
-task_result_queue = 'test_result'
+task_input_queue = compose_queue(RoutingKeys.TASK)
+task_result_queue = compose_queue(RoutingKeys.RESULTS)
 test_tasks = {i: {'id': i, 'task': random()} for i in range(10)}
 expected_task_sequence = (0, 2, 4, 1, 3, 5, 6, 7, 8, 9)
 
@@ -40,6 +42,7 @@ def create_agent(name: Union[str, int], interrupt: Callable) -> Agent:
 def test_broker_smoke():
     with Broker('localhost') as client:
         client.connect()
+        client.setup_exchange()
         client.declare(output_queue=task_input_queue)
         logger.info('Sending task')
         for i in test_tasks:

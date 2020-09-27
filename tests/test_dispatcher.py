@@ -4,6 +4,8 @@ from datetime import datetime
 from functools import partial
 
 from common.connection import RequestConnection
+from common.constants import QUEUE
+from common.defaults import RoutingKeys
 from common.request_types import Register, Pulse, Client_queues
 
 from tests.settings import DISPATCHER_PORT
@@ -76,7 +78,7 @@ def test_dsp_client_queue(dispatcher):
         reply = request_connection.send(request, 1, callback)
         assert reply['name'] == request['name'], \
             'Name param is modified or wrong reply'
-        assert reply['result_queue'] == request['name'], \
+        assert reply['result_queue'][QUEUE] == request['name'], \
             'Wrong result queue name is defined by dispatcher'
-        assert reply['task_queue'] == 'task', \
-            'Task queue is not "task"'
+        assert reply['task_queue'][QUEUE] == RoutingKeys.TASK, \
+            f'Task queue is not "{RoutingKeys.TASK}"'
