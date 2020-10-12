@@ -1,3 +1,9 @@
+# Modules
+AGENT = 'agent'
+BROKER = 'broker'
+CLIENT = 'client'
+DISPATCHER = 'dispatcher'
+
 # Exchange
 EXCHANGE = 'exchange'
 QUEUE = 'queue'

@@ -2,9 +2,8 @@ from copy import deepcopy
 from functools import partial
 import logging
 
-from common.data_structures import compose_queue
+from common.data_structures import compose_queue, task_body
 from common.defaults import RoutingKeys
-from common.request_types import Task
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +25,7 @@ def test_client_queues(dispatcher, client, broker):
     client.name = name
     interrupt = partial(dispatcher.listen, 1)
     client.get_client_queues(interrupt)
-    test_task = deepcopy(Task)
+    test_task = deepcopy(task_body)
     test_task['arguments'] = 'client_task_test'
     client.broker.push(test_task)
     queue = broker.pulling_generator()

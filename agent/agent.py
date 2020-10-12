@@ -1,15 +1,17 @@
 import abc
+import logging
+
 from copy import deepcopy
 from datetime import datetime
-from time import sleep
+from importlib import import_module
 from typing import Callable
-import logging
 
 from common.broker import Broker
 from common.connection import RequestConnection
+from common.constants import AGENT
 from common.request_types import Register, Pulse
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(AGENT)
 
 
 class AgentBase:
@@ -73,6 +75,12 @@ class Agent(AgentBase):
     def sync(self, reply: dict):
         self.last_sync = datetime.utcnow()
 
+    def call_task_module(self, command: dict) -> dict:
+        module = import_module(f'agent.modules.{command["module"]}')
+        func = getattr(module, command['function'])
+        result = func(command['arguments'])
+        return result
+
     def __str__(self):
         return f'Agent: {self.name}({self.id})'
 
@@ -87,26 +95,3 @@ class RemoteAgent(AgentBase):
         self.last_sync = datetime.utcnow()
         request['reply'] = {'status': 'ok'}
         return request
-
-
-def main():
-    connection = RequestConnection(port=9999)
-    print("Connecting to dispatcher")
-    reply = connection.send(Register)
-    print(reply)
-    if reply and reply['result']:
-        agent_id = reply['id']
-    else:
-        assert False, 'Failed to get ID'
-    _pulse = deepcopy(Pulse)
-    _pulse['id'] = agent_id
-    #  Do 10 requests, waiting each time for a response
-    for request in range(10):
-        print("Sending pulse: %s" % request)
-        message = connection.send(_pulse)
-        print("Received pulse reply %s [ %s ]" % (request, message))
-        sleep(1)
-
-
-if __name__ == '__main__':
-    main()

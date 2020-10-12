@@ -5,9 +5,8 @@ import logging
 from agent.agent import Agent
 from dispatcher.dispatcher import Dispatcher
 from common.broker import Broker
-from common.data_structures import compose_queue
+from common.data_structures import compose_queue, task_body
 from common.defaults import RoutingKeys
-from common.request_types import Task
 
 logger = logging.getLogger(__name__)
 
@@ -31,11 +30,11 @@ def test_agent_pulse(dispatcher: Dispatcher, agent: Agent):
         assert agent.pulse(interrupt), 'Wrong reply status'
 
 
-def test_agent_queues(agent_on_dispatcher: Dispatcher, broker: Broker):
+def test_agent_queues(agent_on_dispatcher: Agent, broker: Broker):
     agent = agent_on_dispatcher
-    test_task = deepcopy(Task)
+    test_task = deepcopy(task_body)
     test_task['arguments'] = 'agent_task_test'
-    task_result = deepcopy(Task)
+    task_result = deepcopy(task_body)
     task_result['arguments'] = 'agent_task_result'
     broker.declare(input_queue=compose_queue(RoutingKeys.RESULTS),
                    output_queue=compose_queue(RoutingKeys.TASK))
@@ -49,3 +48,16 @@ def test_agent_queues(agent_on_dispatcher: Dispatcher, broker: Broker):
     broker.set_task_done(result)
     assert task_result == result.body, \
         'Wrong Agent result is received from task queue'
+
+
+def test_task_runner(agent_on_dispatcher: Agent):
+    agent = agent_on_dispatcher
+    test_task = deepcopy(task_body)
+    test_task['module'] = 'builtin'
+    test_task['function'] = 'relay'
+    test_task['arguments'] = 'agent_task_test'
+    logger.debug(test_task)
+    result = agent.call_task_module(test_task)
+    logger.debug(result)
+    assert test_task['arguments'] == result, \
+        'Wrong task is received from task queue for Agent'

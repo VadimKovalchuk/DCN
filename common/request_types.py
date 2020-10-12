@@ -31,11 +31,5 @@ Client_queues = {
     'result_queue': ''
 }
 
-Task = {
-    'module': 'builtin',
-    'function': 'dummy',
-    'arguments': None
-}
-
 Task_report = {}
 

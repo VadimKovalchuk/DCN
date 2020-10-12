@@ -1,16 +1,15 @@
-from copy import deepcopy
 import logging
 from typing import Callable, Union
 
-from agent import RemoteAgent
+from agent.agent import RemoteAgent
 from common.broker import Broker
 from common.connection import ReplyConnection
-from common.constants import SECOND, QUEUE
+from common.constants import DISPATCHER, SECOND
 from common.data_structures import compose_queue
 from common.defaults import INIT_AGENT_ID, RoutingKeys
 from common.request_types import Commands
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(DISPATCHER)
 
 
 class Dispatcher:
@@ -60,6 +59,7 @@ class Dispatcher:
 
     def _register_handler(self, request: dict):
         logger.info(f'Registration request received {request["name"]}')
+        print('reg')
         request['id'] = self._next_free_id
         agent = RemoteAgent(self._next_free_id)
         agent.name = request['name']

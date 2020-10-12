@@ -13,3 +13,12 @@ def compose_queue(name: str):
     queue = deepcopy(queue_template)
     queue[QUEUE] = name
     return queue
+
+
+task_body = {
+    'id': 0,
+    'client': 'flush',
+    'module': 'builtin',
+    'function': 'dummy',
+    'arguments': None
+}

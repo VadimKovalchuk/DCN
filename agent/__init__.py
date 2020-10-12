@@ -1,1 +1,1 @@
-from agent.agent import RemoteAgent
+from .agent import Agent, RemoteAgent

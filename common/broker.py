@@ -6,12 +6,11 @@ from typing import Generator, Union
 import pika
 from pika.exceptions import AMQPConnectionError
 
-from common.constants import EXCHANGE, QUEUE, SECOND
-from common.data_structures import queue_template
+from common.constants import BROKER, EXCHANGE, QUEUE, SECOND
 from common.defaults import CONNECTION_RETRY_COUNT, RECONNECT_DELAY,\
     EXCHANGE_NAME, EXCHANGE_TYPE, RoutingKeys
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(BROKER)
 logging.getLogger('pika').setLevel(logging.WARNING)
 # RabbitMQ running is required for this module operations
 # sudo docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3.8.4-management &
@@ -48,7 +47,7 @@ class Broker:
         self.channel = None
         self.input_queue = ''
         self.output_queue = ''
-        self._inactivity_timeout = 60 * SECOND
+        self._inactivity_timeout = 10 * SECOND
 
     def __enter__(self):
         return self
