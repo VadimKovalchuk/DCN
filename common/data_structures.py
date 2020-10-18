@@ -19,6 +19,15 @@ task_body = {
     'id': 0,
     'client': 'flush',
     'module': 'builtin',
-    'function': 'dummy',
+    'function': 'relay',
     'arguments': None
+}
+
+
+task_report = {
+    'id': 0,
+    'client': 'flush',
+    'result': '',
+    'status': 'undef',
+    'resolution': '',
 }

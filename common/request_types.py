@@ -30,6 +30,3 @@ Client_queues = {
     'task_queue': '',
     'result_queue': ''
 }
-
-Task_report = {}
-
