@@ -48,16 +48,3 @@ def test_agent_queues(agent_on_dispatcher: Agent, broker: Broker):
     broker.set_task_done(result)
     assert task_result == result.body, \
         'Wrong Agent result is received from task queue'
-
-
-def test_task_runner(agent_on_dispatcher: Agent):
-    agent = agent_on_dispatcher
-    test_task = deepcopy(task_body)
-    test_task['module'] = 'builtin'
-    test_task['function'] = 'relay'
-    test_task['arguments'] = 'agent_task_test'
-    logger.debug(test_task)
-    result = agent.call_task_module(test_task)
-    logger.debug(result)
-    assert test_task['arguments'] == result, \
-        'Wrong task is received from task queue for Agent'

@@ -1,8 +1,8 @@
 import logging
 
-from time import sleep, time
+from time import sleep, monotonic
 
-from agent import Agent
+from agent import Agent, TaskRunner
 from common.constants import AGENT, BROKER, SECOND
 from common.logging_tools import setup_module_logger
 
@@ -21,10 +21,13 @@ def main():
         agent.register()
         logger.info('Starting processing')
         while True:
-            timestamp = time()
+            timestamp = monotonic()
             for task in agent.broker.pulling_generator():
-                pass
-            delta = time() - timestamp
+                runner = TaskRunner(task)
+                runner.run()
+                agent.broker.push(runner.report, runner.report['client'])
+                agent.broker.set_task_done(task)
+            delta = monotonic() - timestamp
             logger.debug(f'Exit task loop after {delta:.3f} seconds')
             if delta < PULSE_PERIOD:
                 delay = PULSE_PERIOD - delta

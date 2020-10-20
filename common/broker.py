@@ -98,14 +98,15 @@ class Broker:
         if output_queue:
             self.output_queue = output_queue
 
-    def push(self, message: dict):
-        if not self.output_queue:
+    def push(self, message: dict, queue: Union[None, dict] = None):
+        if not self.output_queue and not queue:
             raise RuntimeError('Trying to push results to queue '
                                'that not defined')
+        _queue = queue or self.output_queue
         msg_str = json.dumps(message, indent=4)
         logger.debug(f'sending: {msg_str}')
-        self.channel.basic_publish(exchange=self.output_queue[EXCHANGE],
-                                   routing_key=self.output_queue[QUEUE],
+        self.channel.basic_publish(exchange=_queue[EXCHANGE],
+                                   routing_key=_queue[QUEUE],
                                    body=msg_str)
 
     def pulling_generator(self) -> Generator:
@@ -129,5 +130,3 @@ class Broker:
         logger.info('Closing broker connection')
         if self.connection:
             self.connection.close()
-
-

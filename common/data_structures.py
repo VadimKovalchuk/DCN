@@ -17,7 +17,7 @@ def compose_queue(name: str):
 
 task_body = {
     'id': 0,
-    'client': 'flush',
+    'client': compose_queue('flush'),
     'module': 'builtin',
     'function': 'relay',
     'arguments': None
@@ -26,7 +26,7 @@ task_body = {
 
 task_report = {
     'id': 0,
-    'client': 'flush',
+    'client': compose_queue('flush'),
     'result': '',
     'status': 'undef',
     'resolution': '',

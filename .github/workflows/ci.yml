@@ -38,13 +38,16 @@ jobs:
     - name: Test Broker
       run: |
         pytest tests/test_broker_wrapper.py
-    - name: Test Dispatcher(Linux)
+    - name: Test Dispatcher
       run: |
         pytest tests/test_dispatcher.py
-    - name: Test Agent(Linux)
+    - name: Test Agent
       run: |
-        pytest tests/test_agent.py
-    - name: Test Client(Linux)
+        pytest tests/test_task_runner.py tests/test_agent.py
+    - name: Test Client
       run: |
         pytest tests/test_client.py
-          
+    - name: Test System
+      run: |
+        pytest tests/test_integration.py
+

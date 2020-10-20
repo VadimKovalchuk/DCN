@@ -8,7 +8,7 @@ from typing import Callable
 
 from common.broker import Broker, Task
 from common.connection import RequestConnection
-from common.constants import AGENT
+from common.constants import AGENT, QUEUE
 from common.data_structures import task_report
 from common.request_types import Register, Pulse
 
@@ -76,12 +76,6 @@ class Agent(AgentBase):
     def sync(self, reply: dict):
         self.last_sync = datetime.utcnow()
 
-    def call_task_module(self, command: dict) -> dict:
-        module = import_module(f'agent.modules.{command["module"]}')
-        func = getattr(module, command['function'])
-        result = func(command['arguments'])
-        return result
-
     def __str__(self):
         return f'Agent: {self.name}({self.id})'
 
@@ -119,11 +113,14 @@ class TaskRunner:
         :return:
         bool: validation status (True=passed)
         """
+        logger.debug(self.task.body)
+        self.report['id'] = self.task.body['id']
         client_queue = self.task.body.get('client')
-        if not client_queue or client_queue == 'flush':
+        if not client_queue or not client_queue.get(QUEUE):
             self.update_status(False,
-                               f'Invalid client queue name: {client_queue}')
+                               f'Invalid client queue: {client_queue}')
             return False
+        self.report['client'] = self.task.body['client']
         module = self.task.body.get('module')
         if not module:
             self.update_status(False, 'Task module is not defined')

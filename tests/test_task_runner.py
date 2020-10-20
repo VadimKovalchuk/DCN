@@ -9,9 +9,8 @@ from common.data_structures import task_body
 logger = logging.getLogger(__name__)
 
 
-def test_happy_path():
+def test_task_runner_flow():
     test_task_body = deepcopy(task_body)
-    test_task_body['client'] = 'test'
     test_task_body['arguments'] = {'arg': 'agent_task_test'}
     test_task = Task(None, None, json.dumps(test_task_body))
     runner = TaskRunner(test_task)
