@@ -1,14 +1,15 @@
 import logging
 
+from copy import deepcopy
 from functools import partial
 from itertools import cycle
 from random import random
 from typing import Callable, Union
 
-from agent.agent import Agent
+from agent.agent import Agent, TaskRunner
 from client.client import Client
 from common.broker import Task
-from common.data_structures import compose_queue
+from common.data_structures import compose_queue, task_body
 from common.defaults import RoutingKeys
 from dispatcher.dispatcher import Dispatcher
 from tests.settings import DISPATCHER_PORT
@@ -45,3 +46,26 @@ def test_tasks_distribution(dispatcher: Dispatcher, client: Client):
         agent.broker.set_task_done(task)
     for agent in agents:
         agent.close()
+
+
+def test_full_chain(agent_on_dispatcher: Agent, client_on_dispatcher: Client):
+    agent = agent_on_dispatcher
+    client = client_on_dispatcher
+    # Send task from client
+    test_task = deepcopy(task_body)
+    test_task['client'] = client.broker.input_queue
+    test_task['arguments'] = {'test_arg_1': 'test_val_1',
+                              'test_arg_2': 'test_val_2'}
+    client.broker.push(test_task)
+    # Processing task on agent
+    task = next(agent.broker.pulling_generator())
+    runner = TaskRunner(task)
+    assert runner.run(), 'Error occur during task execution'
+    agent.broker.set_task_done(task)
+    report = runner.report
+    # Validating result on client
+    agent.broker.push(report, report['client'])
+    result = next(client.broker.pulling_generator())
+    client.broker.set_task_done(result)
+    assert test_task == task.body, \
+        'Wrong task is received from task queue for Agent'

@@ -99,7 +99,8 @@ def client():
 @pytest.fixture()
 def client_on_dispatcher(client: Client, dispatcher: Dispatcher):
     interrupt = partial(dispatcher.listen, 1)
-    client.register(interrupt)
+    client.name = 'test_client'
+    client.get_client_queues(interrupt)
     client.broker._inactivity_timeout = 0.1 * SECOND
     yield client
 

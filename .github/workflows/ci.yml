@@ -49,5 +49,5 @@ jobs:
         pytest tests/test_client.py
     - name: Test System
       run: |
-        pytest tests/test_integration.py
+        pytest tests/test_system.py
 

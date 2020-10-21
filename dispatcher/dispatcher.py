@@ -59,7 +59,6 @@ class Dispatcher:
 
     def _register_handler(self, request: dict):
         logger.info(f'Registration request received {request["name"]}')
-        print('reg')
         request['id'] = self._next_free_id
         agent = RemoteAgent(self._next_free_id)
         agent.name = request['name']
