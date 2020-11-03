@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class Client:
     def __init__(self,
-                 name: str = '',
+                 name: str,
                  token: str = '',
                  dsp_ip: str = 'localhost',
                  dsp_port: int = 9999):

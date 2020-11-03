@@ -90,7 +90,7 @@ def agent_on_dispatcher(agent: Agent, dispatcher: Dispatcher):
 
 @pytest.fixture
 def client():
-    with Client(dsp_port=DISPATCHER_PORT) as client:
+    with Client(name='test_client', dsp_port=DISPATCHER_PORT) as client:
         client.connect()
         yield client
         flush_queue(client.broker.host, client.broker.input_queue)
@@ -99,7 +99,6 @@ def client():
 @pytest.fixture()
 def client_on_dispatcher(client: Client, dispatcher: Dispatcher):
     interrupt = partial(dispatcher.listen, 1)
-    client.name = 'test_client'
     client.get_client_queues(interrupt)
     client.broker._inactivity_timeout = 0.1 * SECOND
     yield client

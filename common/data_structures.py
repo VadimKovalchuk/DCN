@@ -28,6 +28,6 @@ task_report = {
     'id': 0,
     'client': compose_queue('flush'),
     'result': '',
-    'status': 'undef',
-    'resolution': '',
+    'status': False,
+    'resolution': 'Unhandled error',
 }

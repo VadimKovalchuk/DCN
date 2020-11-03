@@ -1,5 +1,6 @@
 import abc
 import logging
+import sys
 
 from copy import deepcopy
 from datetime import datetime
@@ -13,6 +14,8 @@ from common.data_structures import task_report
 from common.request_types import Register, Pulse
 
 logger = logging.getLogger(AGENT)
+
+sys.path.append('./agent/modules')
 
 
 class AgentBase:
@@ -135,7 +138,7 @@ class TaskRunner:
     def get_module(self) -> bool:
         module_name = self.task.body['module']
         try:
-            self._module = import_module(f'agent.modules.{module_name}')
+            self._module = import_module(module_name)
             return True
         except ModuleNotFoundError:
             self.update_status(False, f'Module {module_name} is not found')
@@ -152,8 +155,13 @@ class TaskRunner:
 
     def execution(self) -> bool:
         try:
-            self.report['result'] = \
-                self._function(self.task.body['arguments'])
+            if self.task.body['arguments']:
+                self.report['result'] = \
+                    self._function(self.task.body['arguments'])
+            else:
+                self.report['result'] = \
+                    self._function()
+            self.update_status(True, '')
             return True
         except Exception as e:
             self.update_status(False, str(e))
