@@ -1,23 +1,32 @@
 class Commands:
-    register = 'register'
-    pulse = 'pulse'
+    Register = 'register'
+    Pulse = 'pulse'
+    Client_queues = 'client_queues'
 
 
-register = {
+Register = {
     'id': 0,
-    'command': 'register',
+    'command': Commands.Register,
     'type': 'unified',
     'name': '',
+    'broker': {
+        'host': '',
+        'task': '',
+        'result': ''
+    },
     'result': False
 }
 
-pulse = {
+Pulse = {
     'id': 0,
-    'command': 'pulse',
+    'command': Commands.Pulse,
     'reply': {}
 }
 
-task = {}
-
-task_report = {}
-
+Client_queues = {
+    'command': Commands.Client_queues,
+    'token': '',
+    'broker': '',
+    'task_queue': '',
+    'result_queue': ''
+}

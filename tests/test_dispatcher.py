@@ -1,9 +1,12 @@
 import logging
 from copy import deepcopy
 from datetime import datetime
+from functools import partial
 
 from common.connection import RequestConnection
-from common.request_types import register, pulse
+from common.constants import QUEUE
+from common.defaults import RoutingKeys
+from common.request_types import Register, Pulse, Client_queues
 
 from tests.settings import DISPATCHER_PORT
 
@@ -13,35 +16,34 @@ TEST_MESSAGE = {'test': 'test'}
 
 
 def dummy_request_handler(request: dict):
-    logger.debug(f'dummy_request_handler: {request}')
+    logger.info(f'dummy_request_handler: {request}')
     assert request == TEST_MESSAGE, 'Test message in request is modified ' \
                                     'between "send" and "request_handler"'
     return request
 
 
-def test_dispatcher_connection(dispatcher):
+def test_dsp_agent_connection(dispatcher):
     with RequestConnection(port=DISPATCHER_PORT) as request_connection:
-        logger.debug('Sending test message')
-        request_connection.socket.send_json(TEST_MESSAGE)
+        request_connection.establish()
+        logger.info('Sending test message')
         dispatcher.request_handler = dummy_request_handler
-        dispatcher.listen(1)
-        logger.debug('Waiting for response')
-        reply = request_connection.socket.recv_json()
+        callback = partial(dispatcher.listen, 1)
+        reply = request_connection.send(TEST_MESSAGE, 1, callback)
         assert reply == TEST_MESSAGE, 'Test message in request is modified ' \
                                       'between "request_handler" and "reply"'
 
 
-def test_dispatcher_register(dispatcher):
+def test_dsp_register(dispatcher):
     name = 'this_is_test'
     with RequestConnection(port=DISPATCHER_PORT) as request_connection:
-        logger.debug('Sending registration message')
-        register_req = deepcopy(register)
+        request_connection.establish()
+        request_connection.establish()
+        logger.info('Sending registration message')
+        register_req = deepcopy(Register)
         register_req['name'] = name
         expected_id = dispatcher._next_free_id
-        request_connection.socket.send_json(register_req)
-        dispatcher.listen(1)
-        logger.debug('Waiting for response')
-        reply = request_connection.socket.recv_json()
+        callback = partial(dispatcher.listen, 1)
+        reply = request_connection.send(register_req, 1, callback)
         assert reply['result'], 'Registration was not successful'
         assert reply['id'] == expected_id, 'Wrong agent id is assigned'
         assert expected_id in dispatcher.agents, 'Agent is missing in ' \
@@ -51,19 +53,32 @@ def test_dispatcher_register(dispatcher):
         now = datetime.utcnow()
         last_sync = dispatcher.agents[expected_id].last_sync
         assert 0.01 > (now - last_sync).seconds, 'Request-Reply sync timestamp' \
-                                                'differs more than expected'
+                                                 'differs more than expected'
 
 
-def test_dispatcher_pulse(dispatcher):
+def test_dsp_pulse(dispatcher):
     with RequestConnection(port=DISPATCHER_PORT) as request_connection:
-        register_req = deepcopy(register)
-        request_connection.socket.send_json(register_req)
-        dispatcher.listen(1)
-        reply = request_connection.socket.recv_json()
+        request_connection.establish()
+        register_req = deepcopy(Register)
+        callback = partial(dispatcher.listen, 1)
+        reply = request_connection.send(register_req, 1, callback)
         for _ in range(10):
-            pulse_req = deepcopy(pulse)
+            pulse_req = deepcopy(Pulse)
             pulse_req['id'] = reply['id']
-            request_connection.socket.send_json(pulse_req)
-            dispatcher.listen(1)
-            reply = request_connection.socket.recv_json()
+            reply = request_connection.send(pulse_req, 1, callback)
             assert 'ok' == reply['reply']['status'], 'Wrong reply status'
+
+
+def test_dsp_client_queue(dispatcher):
+    with RequestConnection(port=DISPATCHER_PORT) as request_connection:
+        request_connection.establish()
+        request = deepcopy(Client_queues)
+        request['name'] = 'test_dsp_client_queue'
+        callback = partial(dispatcher.listen, 1)
+        reply = request_connection.send(request, 1, callback)
+        assert reply['name'] == request['name'], \
+            'Name param is modified or wrong reply'
+        assert reply['result_queue'][QUEUE] == request['name'], \
+            'Wrong result queue name is defined by dispatcher'
+        assert reply['task_queue'][QUEUE] == RoutingKeys.TASK, \
+            f'Task queue is not "{RoutingKeys.TASK}"'

@@ -1,20 +1,28 @@
 import abc
+import logging
+import sys
+
 from copy import deepcopy
 from datetime import datetime
-from time import sleep
+from importlib import import_module
 from typing import Callable
-import logging
 
+from common.broker import Broker, Task
 from common.connection import RequestConnection
-from common.request_types import register, pulse
+from common.constants import AGENT, QUEUE
+from common.data_structures import task_report
+from common.request_types import Register, Pulse
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(AGENT)
+
+sys.path.append('./agent/modules')
 
 
 class AgentBase:
     def __init__(self):
         self.id = 0
         self.name = ''
+        self.token = ''
         self.last_sync = datetime.utcnow()
 
     @abc.abstractmethod
@@ -32,24 +40,37 @@ class Agent(AgentBase):
         logger.info('Starting Agent')
         super(Agent, self).__init__()
         self.socket = RequestConnection(dsp_ip, dsp_port)
+        self.broker = None
 
     def __enter__(self):
         return self
 
     def __exit__(self, *exc_info):
+        self.close()
+
+    def connect(self):
+        self.socket.establish()
+
+    def close(self):
+        if self.broker:
+            self.broker.close()
         self.socket.close()
 
     def register(self, callback: Callable = None):
-        request = deepcopy(register)
+        request = deepcopy(Register)
         if self.name:
             request['name'] = self.name
         reply = self.socket.send(request, callback=callback)
         if reply['result']:
             self.id = reply['id']
             self.sync(reply)
+            self.broker = Broker(reply['broker']['host'])
+            self.broker.connect()
+            self.broker.declare(reply['broker']['task'],
+                                reply['broker']['result'])
 
     def pulse(self, callback: Callable = None) -> bool:
-        request = deepcopy(pulse)
+        request = deepcopy(Pulse)
         request['id'] = self.id
         reply = self.socket.send(request, callback=callback)
         self.sync(reply)
@@ -57,6 +78,9 @@ class Agent(AgentBase):
 
     def sync(self, reply: dict):
         self.last_sync = datetime.utcnow()
+
+    def __str__(self):
+        return f'Agent: {self.name}({self.id})'
 
 
 class RemoteAgent(AgentBase):
@@ -71,24 +95,84 @@ class RemoteAgent(AgentBase):
         return request
 
 
-def main():
-    connection = RequestConnection(port=9999)
-    print("Connecting to dispatcher")
-    reply = connection.send(register)
-    print(reply)
-    if reply and reply['result']:
-        agent_id = reply['id']
-    else:
-        assert False, 'Failed to get ID'
-    _pulse = deepcopy(pulse)
-    _pulse['id'] = agent_id
-    #  Do 10 requests, waiting each time for a response
-    for request in range(10):
-        print("Sending pulse: %s" % request)
-        message = connection.send(_pulse)
-        print("Received pulse reply %s [ %s ]" % (request, message))
-        sleep(1)
+class TaskRunner:
+    def __init__(self, task: Task):
+        self.task = task
+        self.report = deepcopy(task_report)
+        self._module = None
+        self._function = None
+        self.flow = [self.validate_task_parameters, self.get_module, self.get_function, self.execution]
 
+    def update_status(self, status: bool, resolution: str):
+        if not status:
+            logger.error(resolution)
+        self.report['status'] = status
+        self.report['resolution'] = resolution
 
-if __name__ == '__main__':
-    main()
+    def validate_task_parameters(self) -> bool:
+        """
+        Validates task for valid parameters content
+
+        :return:
+        bool: validation status (True=passed)
+        """
+        logger.debug(self.task.body)
+        self.report['id'] = self.task.body['id']
+        client_queue = self.task.body.get('client')
+        if not client_queue or not client_queue.get(QUEUE):
+            self.update_status(False,
+                               f'Invalid client queue: {client_queue}')
+            return False
+        self.report['client'] = self.task.body['client']
+        module = self.task.body.get('module')
+        if not module:
+            self.update_status(False, 'Task module is not defined')
+            return False
+        # TODO: Validate module is present
+        function = self.task.body.get('function')
+        if not function:
+            self.update_status(False, 'Task function is not defined')
+            return False
+        return True
+
+    def get_module(self) -> bool:
+        module_name = self.task.body['module']
+        try:
+            self._module = import_module(module_name)
+            return True
+        except ModuleNotFoundError:
+            self.update_status(False, f'Module {module_name} is not found')
+            return False
+
+    def get_function(self) -> bool:
+        function_name = self.task.body['function']
+        try:
+            self._function = getattr(self._module, function_name)
+            return True
+        except AttributeError:
+            logger.error(f'Module {self._module} does not contain '
+                         f'function {function_name}')
+
+    def execution(self) -> bool:
+        try:
+            if self.task.body['arguments']:
+                self.report['result'] = \
+                    self._function(self.task.body['arguments'])
+            else:
+                self.report['result'] = \
+                    self._function()
+            self.update_status(True, '')
+            return True
+        except Exception as e:
+            self.update_status(False, str(e))
+            return False
+
+    def run(self):
+        for stage in self.flow:
+            logger.debug(f'Starting {stage}')
+            if stage():
+                logger.debug(f'Complete {stage}')
+            else:
+                return False
+        else:
+            return True
