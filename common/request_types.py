@@ -7,7 +7,7 @@ class Commands:
 Register = {
     'id': 0,
     'command': Commands.Register,
-    'type': 'unified',
+    'token': 'unified',
     'name': '',
     'broker': {
         'host': '',

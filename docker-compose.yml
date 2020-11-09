@@ -1,0 +1,26 @@
+version: "3.8"
+services:
+  rabbitmq:
+    image: "rabbitmq:3.8.4-management"
+    deploy:
+      mode: global
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+  dispatcher:
+    image: "dcn:latest"
+    deploy:
+      mode: global
+    ports:
+      - "9999:9999"
+    command: ["python", "/src/dispatcher/service.py", "rabbitmq"]
+    depends_on:
+      - rabbitmq
+  agent:
+    image: "dcn:latest"
+    command: ["python", "/src/agent/service.py", "dispatcher", "docker"]
+    depends_on:
+      - dispatcher
+    deploy:
+      mode: replicated
+      replicas: 2

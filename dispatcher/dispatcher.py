@@ -8,6 +8,7 @@ from common.constants import DISPATCHER, SECOND
 from common.data_structures import compose_queue
 from common.defaults import INIT_AGENT_ID, RoutingKeys
 from common.request_types import Commands
+from common.database import Database
 
 logger = logging.getLogger(DISPATCHER)
 
@@ -62,7 +63,8 @@ class Dispatcher:
         request['id'] = self._next_free_id
         agent = RemoteAgent(self._next_free_id)
         agent.name = request['name']
-        request['broker']['host'] = self.broker.host
+        config = Database.get_agent_param(request['token'])
+        request['broker']['host'] = config['broker']
         request['broker']['task'] = compose_queue(RoutingKeys.TASK)
         request['broker']['result'] = compose_queue(RoutingKeys.RESULTS)
         self.agents[self._next_free_id] = agent
@@ -79,7 +81,8 @@ class Dispatcher:
 
     def _client_handler(self, request: dict):
         logger.debug(f'Client queues are requested by: {request["name"]}')
-        request['broker'] = self.broker.host
+        config = Database.get_client_param(request['token'])
+        request['broker'] = config['broker']
         request['task_queue'] = compose_queue(RoutingKeys.TASK)
         request['result_queue'] = compose_queue(request['name'])
         return request

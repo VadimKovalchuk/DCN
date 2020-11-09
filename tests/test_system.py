@@ -1,3 +1,4 @@
+import json
 import logging
 
 from copy import deepcopy
@@ -8,11 +9,10 @@ from typing import Callable, Union
 
 from agent.agent import Agent, TaskRunner
 from client.client import Client
-from common.broker import Task
 from common.data_structures import compose_queue, task_body
 from common.defaults import RoutingKeys
 from dispatcher.dispatcher import Dispatcher
-from tests.settings import DISPATCHER_PORT
+from tests.settings import AGENT_TEST_TOKEN, DISPATCHER_PORT
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ expected_task_sequence = (0, 2, 4, 1, 3, 5, 6, 7, 8, 9)
 
 
 def create_agent(name: Union[str, int], interrupt: Callable) -> Agent:
-    agent = Agent(dsp_port=DISPATCHER_PORT)
+    agent = Agent(token=AGENT_TEST_TOKEN, dsp_port=DISPATCHER_PORT)
     agent.name = str(name)
     agent.connect()
     agent.register(interrupt)

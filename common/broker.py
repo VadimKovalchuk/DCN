@@ -13,7 +13,7 @@ from common.defaults import CONNECTION_RETRY_COUNT, RECONNECT_DELAY,\
 logger = logging.getLogger(BROKER)
 logging.getLogger('pika').setLevel(logging.WARNING)
 # RabbitMQ running is required for this module operations
-# sudo docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3.8.4-management &
+# sudo docker run -dit --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3.8.4-management &
 
 
 def validate_task(method, properties, task_str):

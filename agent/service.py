@@ -1,4 +1,5 @@
 import logging
+import sys
 
 from time import sleep, monotonic
 
@@ -15,7 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    with Agent() as agent:
+    dispatcher_host, token = sys.argv[1:]
+    with Agent(dsp_host=dispatcher_host, token=token) as agent:
         agent.connect()
         logger.info('Registering')
         agent.register()

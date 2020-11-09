@@ -8,7 +8,7 @@ from common.constants import QUEUE
 from common.defaults import RoutingKeys
 from common.request_types import Register, Pulse, Client_queues
 
-from tests.settings import DISPATCHER_PORT
+from tests.settings import CLIENT_TEST_TOKEN, DISPATCHER_PORT
 
 logger = logging.getLogger(__name__)
 
@@ -37,10 +37,10 @@ def test_dsp_register(dispatcher):
     name = 'this_is_test'
     with RequestConnection(port=DISPATCHER_PORT) as request_connection:
         request_connection.establish()
-        request_connection.establish()
         logger.info('Sending registration message')
         register_req = deepcopy(Register)
         register_req['name'] = name
+        register_req['token'] = CLIENT_TEST_TOKEN
         expected_id = dispatcher._next_free_id
         callback = partial(dispatcher.listen, 1)
         reply = request_connection.send(register_req, 1, callback)
@@ -60,6 +60,7 @@ def test_dsp_pulse(dispatcher):
     with RequestConnection(port=DISPATCHER_PORT) as request_connection:
         request_connection.establish()
         register_req = deepcopy(Register)
+        register_req['token'] = CLIENT_TEST_TOKEN
         callback = partial(dispatcher.listen, 1)
         reply = request_connection.send(register_req, 1, callback)
         for _ in range(10):
@@ -74,6 +75,7 @@ def test_dsp_client_queue(dispatcher):
         request_connection.establish()
         request = deepcopy(Client_queues)
         request['name'] = 'test_dsp_client_queue'
+        request['token'] = CLIENT_TEST_TOKEN
         callback = partial(dispatcher.listen, 1)
         reply = request_connection.send(request, 1, callback)
         assert reply['name'] == request['name'], \
