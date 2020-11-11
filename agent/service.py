@@ -1,17 +1,15 @@
 import logging
 import sys
 
+from pathlib import Path
 from time import sleep, monotonic
 
 from agent import Agent, TaskRunner
 from common.constants import AGENT, BROKER, SECOND
-from common.logging_tools import setup_module_logger
+from common.logging_tools import get_datetime_stamp, setup_module_logger
 
 PULSE_PERIOD = 10 * SECOND
 
-modules = [__name__, AGENT, BROKER]
-for module_name in modules:
-    setup_module_logger(module_name, logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -39,4 +37,9 @@ def main():
 
 
 if __name__ == '__main__':
+    log_folder = Path(f'/tmp/dcn/agent/{get_datetime_stamp()}_log.txt')
+    log_folder.parent.mkdir(parents=True, exist_ok=True)
+    modules = [__name__, AGENT, BROKER]
+    for module_name in modules:
+        setup_module_logger(module_name, logging.DEBUG, log_folder)
     main()

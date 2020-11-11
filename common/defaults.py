@@ -2,7 +2,7 @@ from common.constants import SECOND
 
 # BROKER
 # connection
-CONNECTION_RETRY_COUNT = 5
+CONNECTION_RETRY_COUNT = 10
 RECONNECT_DELAY = 5 * SECOND
 # exchange
 EXCHANGE_NAME = 'default'
