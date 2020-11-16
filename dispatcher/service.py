@@ -18,7 +18,7 @@ def main():
 
 
 if __name__ == '__main__':
-    log_folder = Path(f'/tmp/dcn/dispatcher/{get_datetime_stamp()}_log.txt')
+    log_folder = Path(f'log/dispatcher/{get_datetime_stamp()}_log.txt')
     log_folder.parent.mkdir(parents=True, exist_ok=True)
     modules = [__name__, BROKER, DISPATCHER]
     for module_name in modules:
