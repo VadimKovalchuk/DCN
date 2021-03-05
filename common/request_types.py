@@ -26,7 +26,10 @@ Pulse = {
 Client_queues = {
     'command': Commands.Client_queues,
     'token': '',
-    'broker': '',
-    'task_queue': '',
-    'result_queue': ''
+    'broker': {
+        'host': '',
+        'task': '',
+        'result': ''
+    },
+    'result': False
 }

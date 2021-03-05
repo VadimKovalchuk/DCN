@@ -35,10 +35,10 @@ class Client:
         request['name'] = self.name
         request['token'] = self.token
         reply = self.socket.send(request, callback=callback)
-        if all((reply['broker'], reply['result_queue'], reply['task_queue'])):
-            self.broker = Broker(reply['broker'])
+        if reply['result']:
+            self.broker = Broker(reply['broker']['host'])
             self.broker.connect()
-            self.broker.declare(reply['result_queue'], reply['task_queue'])
+            self.broker.declare(reply['broker']['result'], reply['broker']['task'])
         else:
             ConnectionRefusedError('Invalid credentials or resource is busy')
 

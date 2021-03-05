@@ -82,9 +82,10 @@ class Dispatcher:
     def _client_handler(self, request: dict):
         logger.debug(f'Client queues are requested by: {request["name"]}')
         config = Database.get_client_param(request['token'])
-        request['broker'] = config['broker']
-        request['task_queue'] = compose_queue(RoutingKeys.TASK)
-        request['result_queue'] = compose_queue(request['name'])
+        request['broker']['host'] = config['broker']
+        request['broker']['task'] = compose_queue(RoutingKeys.TASK)
+        request['broker']['result'] = compose_queue(request['name'])
+        request['result'] = True
         return request
 
 
