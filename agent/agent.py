@@ -1,10 +1,12 @@
 import abc
 import logging
+import pathlib
 import sys
 
 from copy import deepcopy
 from datetime import datetime
 from importlib import import_module
+
 from typing import Callable
 
 from common.broker import Broker, Task
@@ -15,8 +17,8 @@ from common.request_types import Register, Pulse
 
 logger = logging.getLogger(AGENT)
 
-sys.path.append('./agent/modules')
-
+parent_path = pathlib.Path(__file__).parent.absolute()
+sys.path.append(f'{parent_path}/modules')
 
 class AgentBase:
     def __init__(self):
@@ -35,12 +37,14 @@ class AgentBase:
 
 class Agent(AgentBase):
     def __init__(self,
-                 dsp_ip: str = 'localhost',
+                 token: str,
+                 dsp_host: str = 'localhost',
                  dsp_port: int = 9999):
         logger.info('Starting Agent')
         super(Agent, self).__init__()
-        self.socket = RequestConnection(dsp_ip, dsp_port)
+        self.socket = RequestConnection(dsp_host, dsp_port)
         self.broker = None
+        self.token = token
 
     def __enter__(self):
         return self
@@ -60,6 +64,7 @@ class Agent(AgentBase):
         request = deepcopy(Register)
         if self.name:
             request['name'] = self.name
+        request['token'] = self.token
         reply = self.socket.send(request, callback=callback)
         if reply['result']:
             self.id = reply['id']

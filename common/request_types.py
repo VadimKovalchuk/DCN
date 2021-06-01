@@ -7,7 +7,7 @@ class Commands:
 Register = {
     'id': 0,
     'command': Commands.Register,
-    'type': 'unified',
+    'token': 'unified',
     'name': '',
     'broker': {
         'host': '',
@@ -26,7 +26,10 @@ Pulse = {
 Client_queues = {
     'command': Commands.Client_queues,
     'token': '',
-    'broker': '',
-    'task_queue': '',
-    'result_queue': ''
+    'broker': {
+        'host': '',
+        'task': '',
+        'result': ''
+    },
+    'result': False
 }

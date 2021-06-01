@@ -5,6 +5,7 @@ from typing import Union, Callable
 
 import zmq
 
+from common.constants import SECOND
 from common.defaults import DISPATCHER_PORT
 
 logger = logging.getLogger(__name__)
@@ -16,6 +17,9 @@ def is_port_in_use(port):
 
 
 class Connection:
+    """
+    Base connection class
+    """
     port = DISPATCHER_PORT
 
     def __init__(self, ip: str, port: Union[int, str, None]):
@@ -32,7 +36,12 @@ class Connection:
         self.socket.close()
 
     @staticmethod
-    def _get_free_port():
+    def _get_free_port() -> str:
+        """
+        Get host free port
+
+        :return: port
+        """
         while is_port_in_use(Connection.port):
             Connection.port += 1
             if Connection.port == 65535:
@@ -57,6 +66,9 @@ class Connection:
 
 
 class RequestConnection(Connection):
+    """
+    Outgoing requests socket.
+    """
     def __init__(self,
                  ip: str = 'localhost',
                  port: Union[int, str] = ''):
@@ -64,19 +76,31 @@ class RequestConnection(Connection):
         self.socket = self.context.socket(zmq.REQ)
 
     def establish(self):
+        """
+        Establish connection to remote host
+        """
         address = f'tcp://{self.ip}:{self.port}'
         logger.info(f'Establishing connection to: {address}')
         self.socket.connect(address)
 
-    def send(self, message: dict, timeout: int = 30,  # timeout in seconds
-             callback: Callable = None):
+    def send(self, message: dict, timeout: int = 30 * SECOND,
+             callback: Callable = None) -> dict:
+        """
+        Sends request(message) via established connection.
+
+        :param message: request payload
+        :param timeout: timeout for message transmission
+        :param callback: function that may be called after request is sent
+            and before reply is received. Mostly used for testing.
+        :return:
+        """
         self.socket.send_json(message)
         if callback:
             callback()
-        if self.socket.poll(timeout * 1000):
+        if self.socket.poll(timeout * 1000):  # milliseconds
             return self.socket.recv_json()
         else:
-            raise TimeoutError('No reply for Agent request')
+            raise TimeoutError('No reply for sent request')
 
     def close(self):
         logger.info(f'Closing {self}')
@@ -87,6 +111,9 @@ class RequestConnection(Connection):
 
 
 class ReplyConnection(Connection):
+    """
+    Socket for incoming requests listening
+    """
     def __init__(self,
                  ip: str = '*',
                  port: Union[int, str] = ''):
@@ -94,11 +121,24 @@ class ReplyConnection(Connection):
         self.socket = self.context.socket(zmq.REP)
 
     def establish(self):
+        """
+        Bind socket on host for listening
+        """
         address = f'tcp://{self.ip}:{self.port}'
         logger.info(f'Binding port for listening: {address}')
         self.socket.bind(address)
 
-    def listen(self, request_handler: Callable, timeout: int = 30):
+    def listen(self,
+               request_handler: Callable,
+               timeout: int = 30 * SECOND) -> bool:
+        """
+        Performs incoming requests listening, calls request handler with
+        request as an argument and replies with result.
+
+        :param request_handler: Requests handling callback
+        :param timeout: listening poll period
+        :return: True if there was incoming request during poll period
+        """
         if self.socket.poll(timeout * 1000):
             request = self.socket.recv_json()
             self.socket.send_json(request_handler(request))

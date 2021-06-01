@@ -8,6 +8,7 @@ from common.broker import Broker
 from common.data_structures import compose_queue, task_body
 from common.defaults import RoutingKeys
 
+
 logger = logging.getLogger(__name__)
 
 

@@ -12,11 +12,15 @@ from common.defaults import CONNECTION_RETRY_COUNT, RECONNECT_DELAY,\
 
 logger = logging.getLogger(BROKER)
 logging.getLogger('pika').setLevel(logging.WARNING)
-# RabbitMQ running is required for this module operations
-# sudo docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3.8.4-management &
+# RabbitMQ running container is required for current module operations
+# sudo docker run -dit --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3.8.4-management
 
 
 def validate_task(method, properties, task_str):
+    """
+    Validate all task parameters are defined and
+    task string can be parsed as json.
+    """
     if all((method, properties, task_str)):
         try:
             json.loads(task_str)
@@ -40,6 +44,9 @@ class Task:
 
 
 class Broker:
+    """
+    RabbitMQ broker connection wrapper.
+    """
     def __init__(self, host: str):
         logger.info('Starting broker')
         self.host = host
@@ -56,6 +63,9 @@ class Broker:
         self.close()
 
     def connect(self):
+        """
+        Establish connection to broker server.
+        """
         logger.info(f'Broker connecting to server: {self.host}')
         for _try in range(CONNECTION_RETRY_COUNT):
             try:
@@ -76,6 +86,12 @@ class Broker:
     def setup_exchange(self,
                        ex_name: str = EXCHANGE_NAME,
                        ex_type: str = EXCHANGE_TYPE):
+        """
+        Configures exchange point on broker and default queues on it.
+
+        :param ex_name: Exchange name
+        :param ex_type: Exchange type
+        """
         self.channel.exchange_declare(exchange=ex_name,
                                       exchange_type=ex_type)
         for queue in RoutingKeys.ALL_QUEUES:
@@ -84,8 +100,15 @@ class Broker:
                                     queue=queue,
                                     routing_key=queue)
 
-    def declare(self, input_queue: Union[dict, None] = None,
+    def declare(self,
+                input_queue: Union[dict, None] = None,
                 output_queue: Union[dict, None] = None):
+        """
+        Declares input and output queues defined for broker instance
+
+        :param input_queue: queue that should be set for broker as input
+        :param output_queue: queue that should be set for broker as output
+        """
         if not (input_queue or output_queue):
             raise RuntimeError('Queue is not defined for Broker')
         if input_queue:
@@ -99,6 +122,13 @@ class Broker:
             self.output_queue = output_queue
 
     def push(self, message: dict, queue: Union[None, dict] = None):
+        """
+        Push message to output queue or custom queue that can be passed
+        as optional input parameter.
+
+        :param message: message body
+        :param queue: (optional) target queue
+        """
         if not self.output_queue and not queue:
             raise RuntimeError('Trying to push results to queue '
                                'that not defined')
