@@ -9,6 +9,7 @@ from common.logging_tools import get_datetime_stamp, setup_module_logger
 
 logger = logging.getLogger(__name__)
 
+
 def main():
     broker_host = sys.argv[1]
     with Dispatcher(broker_host=broker_host) as dispatcher:

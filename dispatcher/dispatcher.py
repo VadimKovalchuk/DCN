@@ -19,7 +19,7 @@ class Dispatcher:
                  port: Union[int, str] = '',
                  broker_host: str = ''):
         logger.info('Starting Dispatcher')
-        self.connection = ReplyConnection(ip, port)
+        self.socket = ReplyConnection(ip, port)
         self.broker = Broker(broker_host if broker_host else ip)
         self.agents = {}
         self.request_handler = self.default_request_handler
@@ -31,19 +31,19 @@ class Dispatcher:
         return self
 
     def __exit__(self, *exc_info):
-        logger.info(f'Closing Dispatcher connection:{self.connection}')
-        self.connection.close()
+        logger.info(f'Closing Dispatcher connection:{self.socket}')
+        self.socket.close()
         self.broker.close()
 
     def connect(self):
-        self.connection.establish()
+        self.socket.establish()
         self.broker.connect()
         self.broker.setup_exchange()
         self.broker.input_queue = compose_queue(RoutingKeys.DISPATCHER)
 
     def listen(self, polling_timeout: int = 30 * SECOND):
         while self._listen:
-            expired = self.connection.listen(self.request_handler, polling_timeout)
+            expired = self.socket.listen(self.request_handler, polling_timeout)
             if self._interrupt and self._interrupt(expired):
                 break
 
@@ -87,12 +87,3 @@ class Dispatcher:
         request['broker']['result'] = compose_queue(request['name'])
         request['result'] = True
         return request
-
-
-def main():
-    with Dispatcher() as dispatcher:
-        dispatcher.listen()
-
-
-if __name__ == '__main__':
-    main()
