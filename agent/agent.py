@@ -13,12 +13,13 @@ from common.broker import Broker, Task
 from common.connection import RequestConnection
 from common.constants import AGENT, QUEUE
 from common.data_structures import task_report
-from common.request_types import Register, Pulse
+from common.request_types import Agent_queues, Register_agent, Pulse
 
 logger = logging.getLogger(AGENT)
 
 parent_path = pathlib.Path(__file__).parent.absolute()
 sys.path.append(f'{parent_path}/modules')
+
 
 class AgentBase:
     def __init__(self):
@@ -32,7 +33,7 @@ class AgentBase:
         ...
 
     def __str__(self):
-        return f'Agent({self.id})'
+        return f'Agent: {self.name}({self.id})'
 
 
 class Agent(AgentBase):
@@ -61,13 +62,25 @@ class Agent(AgentBase):
         self.socket.close()
 
     def register(self, callback: Callable = None):
-        request = deepcopy(Register)
+        request = deepcopy(Register_agent)
         if self.name:
             request['name'] = self.name
         request['token'] = self.token
         reply = self.socket.send(request, callback=callback)
         if reply['result']:
             self.id = reply['id']
+            self.sync(reply)
+        return reply['result']
+
+    def init_broker(self, callback: Callable = None):
+        """
+        Request Agent queues on Broker from Dispatcher.
+        """
+        request = deepcopy(Agent_queues)
+        request['token'] = self.token
+        request['id'] = self.id
+        reply = self.socket.send(request, callback=callback)
+        if reply['result']:
             self.sync(reply)
             self.broker = Broker(reply['broker']['host'])
             self.broker.connect()
@@ -83,9 +96,6 @@ class Agent(AgentBase):
 
     def sync(self, reply: dict):
         self.last_sync = datetime.utcnow()
-
-    def __str__(self):
-        return f'Agent: {self.name}({self.id})'
 
 
 class RemoteAgent(AgentBase):

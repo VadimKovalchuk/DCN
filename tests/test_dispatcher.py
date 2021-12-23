@@ -6,7 +6,7 @@ from functools import partial
 from common.connection import RequestConnection
 from common.constants import QUEUE
 from common.defaults import RoutingKeys
-from common.request_types import Register, Pulse, Client_queues
+from common.request_types import Register_agent, Pulse, Client_queues
 
 from tests.settings import CLIENT_TEST_TOKEN, DISPATCHER_PORT
 
@@ -38,7 +38,7 @@ def test_dsp_register(dispatcher):
     with RequestConnection(port=DISPATCHER_PORT) as request_connection:
         request_connection.establish()
         logger.info('Sending registration message')
-        register_req = deepcopy(Register)
+        register_req = deepcopy(Register_agent)
         register_req['name'] = name
         register_req['token'] = CLIENT_TEST_TOKEN
         expected_id = dispatcher._next_free_id
@@ -59,7 +59,7 @@ def test_dsp_register(dispatcher):
 def test_dsp_pulse(dispatcher):
     with RequestConnection(port=DISPATCHER_PORT) as request_connection:
         request_connection.establish()
-        register_req = deepcopy(Register)
+        register_req = deepcopy(Register_agent)
         register_req['token'] = CLIENT_TEST_TOKEN
         callback = partial(dispatcher.listen, 1)
         reply = request_connection.send(register_req, 1, callback)

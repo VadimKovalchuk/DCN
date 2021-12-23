@@ -85,6 +85,7 @@ def agent():
 def agent_on_dispatcher(agent: Agent, dispatcher: Dispatcher):
     interrupt = partial(dispatcher.listen, 1)
     agent.register(interrupt)
+    agent.init_broker(interrupt)
     agent.broker._inactivity_timeout = 0.1 * SECOND
     yield agent
 

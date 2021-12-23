@@ -49,28 +49,39 @@ class Dispatcher:
 
     def default_request_handler(self, request: dict):
         commands = {
-            Commands.Register: self._register_handler,
+            Commands.Register_agent: self._register_agent_handler,
+            Commands.Agent_queues: self._agent_queues_handler,
             Commands.Pulse: self._pulse_handler,
-            Commands.Client_queues: self._client_handler
+            Commands.Client_queues: self._client_handler,
         }
         assert request['command'] in commands, 'Command ' \
             f'{request["command"]} is not registered in dispatcher request handler'
         command = commands[request['command']]
         return command(request)
 
-    def _register_handler(self, request: dict):
+    def _register_agent_handler(self, request: dict):
         logger.info(f'Registration request received {request["name"]}')
         request['id'] = self._next_free_id
         agent = RemoteAgent(self._next_free_id)
         agent.name = request['name']
-        config = Database.get_agent_param(request['token'])
-        request['broker']['host'] = config['broker']
-        request['broker']['task'] = compose_queue(RoutingKeys.TASK)
-        request['broker']['result'] = compose_queue(RoutingKeys.RESULTS)
+        agent.token = request['token']
         self.agents[self._next_free_id] = agent
         logger.info(f'New agent id={agent.id}')
         request['result'] = True
         self._next_free_id += 1
+        return request
+
+    def _agent_queues_handler(self, request: dict):
+        """
+
+        """
+        agent = self.agents[request['id']]
+        logger.debug(f'Agent queues request received from {agent}')
+        config = Database.get_agent_param(agent.token)
+        request['broker']['host'] = config['broker']
+        request['broker']['task'] = compose_queue(RoutingKeys.TASK)
+        request['broker']['result'] = compose_queue(RoutingKeys.RESULTS)
+        request['result'] = True
         return request
 
     def _pulse_handler(self, request: dict):

@@ -27,6 +27,7 @@ def create_agent(name: Union[str, int], interrupt: Callable) -> Agent:
     agent.name = str(name)
     agent.connect()
     agent.register(interrupt)
+    agent.init_broker(interrupt)
     agent.broker._inactivity_timeout = 0.1
     return agent
 
