@@ -61,25 +61,25 @@ class Agent(AgentBase):
             self.broker.close()
         self.socket.close()
 
-    def register(self, callback: Callable = None):
+    def register(self):
         request = deepcopy(Register_agent)
         if self.name:
             request['name'] = self.name
         request['token'] = self.token
-        reply = self.socket.send(request, callback=callback)
+        reply = self.socket.send(request)
         if reply['result']:
             self.id = reply['id']
             self.sync(reply)
         return reply['result']
 
-    def init_broker(self, callback: Callable = None):
+    def init_broker(self):
         """
         Request Agent queues on Broker from Dispatcher.
         """
         request = deepcopy(Agent_queues)
         request['token'] = self.token
         request['id'] = self.id
-        reply = self.socket.send(request, callback=callback)
+        reply = self.socket.send(request)
         if reply['result']:
             self.sync(reply)
             self.broker = Broker(reply['broker']['host'])
@@ -87,10 +87,10 @@ class Agent(AgentBase):
             self.broker.declare(reply['broker']['task'],
                                 reply['broker']['result'])
 
-    def pulse(self, callback: Callable = None) -> bool:
+    def pulse(self) -> bool:
         request = deepcopy(Pulse)
         request['id'] = self.id
-        reply = self.socket.send(request, callback=callback)
+        reply = self.socket.send(request)
         self.sync(reply)
         return reply['reply']['status']
 

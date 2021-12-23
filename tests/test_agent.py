@@ -15,8 +15,7 @@ logger = logging.getLogger(__name__)
 def test_agent_registration(dispatcher: Dispatcher, agent: Agent):
     name = 'agent_test_name'
     agent.name = name
-    interrupt = partial(dispatcher.listen, 1)
-    agent.register(interrupt)
+    agent.register()
     assert agent.id in dispatcher.agents, 'Agent ID mismatch'
     assert agent.name == dispatcher.agents[agent.id].name, \
         'Agent name mismatch'
@@ -25,10 +24,9 @@ def test_agent_registration(dispatcher: Dispatcher, agent: Agent):
 
 
 def test_agent_pulse(dispatcher: Dispatcher, agent: Agent):
-    interrupt = partial(dispatcher.listen, 1)
-    agent.register(interrupt)
+    agent.register()
     for _ in range(10):
-        assert agent.pulse(interrupt), 'Wrong reply status'
+        assert agent.pulse(), 'Wrong reply status'
 
 
 def test_agent_queues(agent_on_dispatcher: Agent, broker: Broker):

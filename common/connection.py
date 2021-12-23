@@ -102,7 +102,7 @@ class RequestConnection(Connection):
         if self.socket.poll(timeout * 1000):  # milliseconds
             return self.socket.recv_json()
         else:
-            raise TimeoutError('No reply for sent request')
+            return {}
 
     def send(self, message: dict, timeout: int = 30 * SECOND) -> dict:
         """

@@ -4,6 +4,7 @@ import shutil
 from functools import partial
 from pathlib import Path
 from threading import Thread
+from time import sleep
 
 import pytest
 
@@ -18,6 +19,9 @@ from tests.settings import AGENT_TEST_TOKEN, CLIENT_TEST_TOKEN,\
     DISPATCHER_PORT
 
 logger = logging.getLogger(__name__)
+
+
+DISPATCHER_LISTEN_TIMEOUT = 0.01
 
 log_file_formatter = None
 cur_log_handler = None
@@ -52,7 +56,7 @@ def broker():
     host = '*'
     with Broker(host) as broker:
         broker.connect()
-        broker._interrupt = polling_expiration
+        # broker._interrupt = polling_expiration
         broker._inactivity_timeout = 0.1 * SECOND
         broker.declare(input_queue=task_queue,
                        output_queue=compose_queue(RoutingKeys.RESULTS))
@@ -68,11 +72,12 @@ def dispatcher():
         # dispatcher._interrupt = polling_expiration
         dispatcher.broker._inactivity_timeout = 0.1 * SECOND
         flush_queue(dispatcher.broker.host, assert_non_empty=False)
-        listener = Thread(target=dispatcher.listen)
+        listener = Thread(target=dispatcher.listen, args=[DISPATCHER_LISTEN_TIMEOUT])
         listener.start()
         yield dispatcher
         dispatcher._listen = False
-        logger.info(listener.join(2))
+        sleep(0.02)  # wait while dispatcher listener is closed
+        logger.info(f'Dispatcher listener state: {listener.is_alive()}')
         flush_queue(dispatcher.broker.host)
 
 
@@ -86,10 +91,9 @@ def agent():
 
 
 @pytest.fixture()
-def agent_on_dispatcher(agent: Agent, dispatcher: Dispatcher):
-    interrupt = partial(dispatcher.listen, 1)
-    agent.register(interrupt)
-    agent.init_broker(interrupt)
+def agent_on_dispatcher(dispatcher: Dispatcher, agent: Agent):
+    agent.register()
+    agent.init_broker()
     agent.broker._inactivity_timeout = 0.1 * SECOND
     yield agent
 
