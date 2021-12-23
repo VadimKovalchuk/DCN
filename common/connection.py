@@ -104,8 +104,7 @@ class RequestConnection(Connection):
         else:
             raise TimeoutError('No reply for sent request')
 
-    def send(self, message: dict, timeout: int = 30 * SECOND,
-             callback: Callable = None) -> dict:
+    def send(self, message: dict, timeout: int = 30 * SECOND) -> dict:
         """
         Sends request(message) via established connection and returns its reply.
 
@@ -116,8 +115,6 @@ class RequestConnection(Connection):
         :return: reply from remote host
         """
         self._out(message)
-        if callback:
-            callback()
         return self._in(timeout)
 
     def close(self):

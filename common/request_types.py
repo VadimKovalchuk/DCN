@@ -3,6 +3,7 @@ class Commands:
     Client_queues = 'client_queues'
     Pulse = 'pulse'
     Register_agent = 'register_agent'
+    Relay = 'relay'
 
 
 Agent_queues = {

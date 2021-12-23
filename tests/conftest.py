@@ -3,7 +3,7 @@ import shutil
 
 from functools import partial
 from pathlib import Path
-from typing import Union
+from threading import Thread
 
 import pytest
 
@@ -65,10 +65,14 @@ def broker():
 def dispatcher():
     with Dispatcher(port=DISPATCHER_PORT) as dispatcher:
         dispatcher.connect()
-        dispatcher._interrupt = polling_expiration
+        # dispatcher._interrupt = polling_expiration
         dispatcher.broker._inactivity_timeout = 0.1 * SECOND
         flush_queue(dispatcher.broker.host, assert_non_empty=False)
+        listener = Thread(target=dispatcher.listen)
+        listener.start()
         yield dispatcher
+        dispatcher._listen = False
+        logger.info(listener.join(2))
         flush_queue(dispatcher.broker.host)
 
 

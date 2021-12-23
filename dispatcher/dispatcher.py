@@ -53,6 +53,7 @@ class Dispatcher:
             Commands.Agent_queues: self._agent_queues_handler,
             Commands.Pulse: self._pulse_handler,
             Commands.Client_queues: self._client_handler,
+            Commands.Relay: self._relay,
         }
         assert request['command'] in commands, 'Command ' \
             f'{request["command"]} is not registered in dispatcher request handler'
@@ -97,4 +98,8 @@ class Dispatcher:
         request['broker']['task'] = compose_queue(RoutingKeys.TASK)
         request['broker']['result'] = compose_queue(request['name'])
         request['result'] = True
+        return request
+
+    def _relay(self, request: dict):
+        logger.debug(f'Relay request called')
         return request

@@ -6,13 +6,13 @@ from functools import partial
 from common.connection import RequestConnection
 from common.constants import QUEUE
 from common.defaults import RoutingKeys
-from common.request_types import Register_agent, Pulse, Client_queues
+from common.request_types import Register_agent, Pulse, Client_queues, Commands
 
 from tests.settings import CLIENT_TEST_TOKEN, DISPATCHER_PORT
 
 logger = logging.getLogger(__name__)
 
-TEST_MESSAGE = {'test': 'test'}
+TEST_MESSAGE = {'command': Commands.Relay, 'test': 'test'}
 
 
 def dummy_request_handler(request: dict):
@@ -27,8 +27,8 @@ def test_dsp_agent_connection(dispatcher):
         request_connection.establish()
         logger.info('Sending test message')
         dispatcher.request_handler = dummy_request_handler
-        callback = partial(dispatcher.listen, 1)
-        reply = request_connection.send(TEST_MESSAGE, 1, callback)
+        dispatcher._listen = False
+        reply = request_connection.send(TEST_MESSAGE, 1)
         assert reply == TEST_MESSAGE, 'Test message in request is modified ' \
                                       'between "request_handler" and "reply"'
 
@@ -42,8 +42,8 @@ def test_dsp_register(dispatcher):
         register_req['name'] = name
         register_req['token'] = CLIENT_TEST_TOKEN
         expected_id = dispatcher._next_free_id
-        callback = partial(dispatcher.listen, 1)
-        reply = request_connection.send(register_req, 1, callback)
+        dispatcher._listen = False
+        reply = request_connection.send(register_req, 1)
         assert reply['result'], 'Registration was not successful'
         assert reply['id'] == expected_id, 'Wrong agent id is assigned'
         assert expected_id in dispatcher.agents, 'Agent is missing in ' \
@@ -61,13 +61,14 @@ def test_dsp_pulse(dispatcher):
         request_connection.establish()
         register_req = deepcopy(Register_agent)
         register_req['token'] = CLIENT_TEST_TOKEN
-        callback = partial(dispatcher.listen, 1)
-        reply = request_connection.send(register_req, 1, callback)
+        reply = request_connection.send(register_req, 1)
+        pulse_req = deepcopy(Pulse)
+        pulse_req['id'] = reply['id']
         for _ in range(10):
-            pulse_req = deepcopy(Pulse)
-            pulse_req['id'] = reply['id']
-            reply = request_connection.send(pulse_req, 1, callback)
+            reply = request_connection.send(pulse_req, 1)
             assert 'ok' == reply['reply']['status'], 'Wrong reply status'
+        dispatcher._listen = False
+        request_connection.send(pulse_req, 1)
 
 
 def test_dsp_client_queue(dispatcher):
@@ -76,8 +77,8 @@ def test_dsp_client_queue(dispatcher):
         request = deepcopy(Client_queues)
         request['name'] = 'test_dsp_client_queue'
         request['token'] = CLIENT_TEST_TOKEN
-        callback = partial(dispatcher.listen, 1)
-        reply = request_connection.send(request, 1, callback)
+        dispatcher._listen = False
+        reply = request_connection.send(request, 1)
         assert reply['name'] == request['name'], \
             'Name param is modified or wrong reply'
         # TODO: Validate broker host
