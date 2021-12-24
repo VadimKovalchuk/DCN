@@ -61,7 +61,7 @@ class Dispatcher:
         return command(request)
 
     def _register_agent_handler(self, request: dict):
-        logger.info(f'Registration request received {request["name"]}')
+        logger.info(f'Registration request received {request["name"]}({self._next_free_id})')
         request['id'] = self._next_free_id
         agent = RemoteAgent(self._next_free_id)
         agent.name = request['name']
@@ -74,7 +74,7 @@ class Dispatcher:
 
     def _agent_queues_handler(self, request: dict):
         """
-
+        Returns Host and queues that agent should connect to.
         """
         agent = self.agents[request['id']]
         logger.debug(f'Agent queues request received from {agent}')
@@ -97,6 +97,15 @@ class Dispatcher:
         request['broker']['host'] = config['broker']
         request['broker']['task'] = compose_queue(RoutingKeys.TASK)
         request['broker']['result'] = compose_queue(request['name'])
+        request['result'] = True
+        return request
+
+    def _disconnect_handler(self, request: dict):
+        """
+
+        """
+        if request['id'] in self.agents:
+            self.agents.pop(request['id'])
         request['result'] = True
         return request
 

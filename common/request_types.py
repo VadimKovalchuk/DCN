@@ -1,6 +1,7 @@
 class Commands:
     Agent_queues = 'agent_queues'
     Client_queues = 'client_queues'
+    Disconnect = 'disconnect'
     Pulse = 'pulse'
     Register_agent = 'register_agent'
     Relay = 'relay'
@@ -26,6 +27,13 @@ Client_queues = {
         'task': '',
         'result': ''
     },
+    'result': False
+}
+
+Disconnect = {
+    'id': 0,
+    'command': Commands.Disconnect,
+    'reply': {},
     'result': False
 }
 
