@@ -33,14 +33,14 @@ Client_queues = {
 Disconnect = {
     'id': 0,
     'command': Commands.Disconnect,
-    'reply': {},
     'result': False
 }
 
 Pulse = {
     'id': 0,
     'command': Commands.Pulse,
-    'reply': {}
+    'reply': {},
+    'result': False
 }
 
 Register_agent = {

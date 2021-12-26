@@ -13,7 +13,7 @@ from common.broker import Broker, Task
 from common.connection import RequestConnection
 from common.constants import AGENT, QUEUE
 from common.data_structures import task_report
-from common.request_types import Agent_queues, Register_agent, Pulse
+from common.request_types import Agent_queues, Disconnect, Register_agent, Pulse
 
 logger = logging.getLogger(AGENT)
 
@@ -25,6 +25,7 @@ class AgentBase:
     def __init__(self):
         self.id = 0
         self.name = ''
+        self.commands = []
         self.token = ''
         self.last_sync = datetime.utcnow()
 
@@ -91,11 +92,20 @@ class Agent(AgentBase):
         request = deepcopy(Pulse)
         request['id'] = self.id
         reply = self.socket.send(request)
-        self.sync(reply)
-        return reply['reply']['status']
+        self.sync(reply['reply'])
+        return reply['result']
 
     def sync(self, reply: dict):
         self.last_sync = datetime.utcnow()
+        if 'commands' in reply:
+            self.commands = reply['commands']
+
+    def disconnect(self):
+        request = deepcopy(Disconnect)
+        request['id'] = self.id
+        reply = self.socket.send(request)
+        # TODO: Finalise disconnect
+        return reply['result']
 
 
 class RemoteAgent(AgentBase):
@@ -106,7 +116,9 @@ class RemoteAgent(AgentBase):
 
     def sync(self, request: dict):
         self.last_sync = datetime.utcnow()
-        request['reply'] = {'status': 'ok'}
+        if self.commands:
+            request['reply']['commands'] = self.commands
+        request['result'] = True
         return request
 
 

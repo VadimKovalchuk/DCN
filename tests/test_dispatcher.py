@@ -64,7 +64,7 @@ def test_dsp_pulse(dispatcher):
         pulse_req['id'] = reply['id']
         for _ in range(10):
             reply = request_connection.send(pulse_req, 1)
-            assert 'ok' == reply['reply']['status'], 'Wrong reply status'
+            assert reply['result'], 'Wrong reply status'
 
 
 def test_dsp_client_queue(dispatcher):

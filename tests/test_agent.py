@@ -1,12 +1,12 @@
 from copy import deepcopy
-from functools import partial
 import logging
 
-from agent.agent import Agent
+from agent.agent import Agent, RemoteAgent
 from dispatcher.dispatcher import Dispatcher
 from common.broker import Broker
 from common.data_structures import compose_queue, task_body
 from common.defaults import RoutingKeys
+from common.request_types import Commands, Disconnect
 
 
 logger = logging.getLogger(__name__)
@@ -47,3 +47,17 @@ def test_agent_queues(agent_on_dispatcher: Agent, broker: Broker):
     broker.set_task_done(result)
     assert task_result == result.body, \
         'Wrong Agent result is received from task queue'
+
+
+def test_agent_command_delivery(dispatcher: Dispatcher, agent_on_dispatcher: Agent):
+    agent = agent_on_dispatcher
+    remote_agent: RemoteAgent = dispatcher.agents[agent.id]
+    remote_agent.commands = ['test']
+    agent.pulse()
+    assert agent.commands == ['test'], 'Agent command delivery has failed'
+
+
+def test_agent_disconnect(dispatcher: Dispatcher, agent_on_dispatcher: Agent):
+    agent = agent_on_dispatcher
+    assert agent.disconnect(), 'Agent Disconnect request has failed'
+    assert agent.id not in dispatcher.agents, 'Agent registration is still active on Dispatcher'

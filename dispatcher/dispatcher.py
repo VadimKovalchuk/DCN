@@ -54,6 +54,7 @@ class Dispatcher:
             Commands.Pulse: self._pulse_handler,
             Commands.Client_queues: self._client_handler,
             Commands.Relay: self._relay,
+            Commands.Disconnect: self._disconnect_handler
         }
         assert request['command'] in commands, 'Command ' \
             f'{request["command"]} is not registered in dispatcher request handler'
@@ -77,7 +78,7 @@ class Dispatcher:
         Returns Host and queues that agent should connect to.
         """
         agent = self.agents[request['id']]
-        logger.debug(f'Agent queues request received from {agent}')
+        logger.info(f'Agent queues request received from {agent}')
         config = Database.get_agent_param(agent.token)
         request['broker']['host'] = config['broker']
         request['broker']['task'] = compose_queue(RoutingKeys.TASK)
@@ -86,13 +87,13 @@ class Dispatcher:
         return request
 
     def _pulse_handler(self, request: dict):
-        logger.debug(f'Pulse request received {request["id"]}')
+        logger.info(f'Pulse request received {request["id"]}')
         agent = self.agents[request['id']]
         reply = agent.sync(request)
         return reply
 
     def _client_handler(self, request: dict):
-        logger.debug(f'Client queues are requested by: {request["name"]}')
+        logger.info(f'Client queues are requested by: {request["name"]}')
         config = Database.get_client_param(request['token'])
         request['broker']['host'] = config['broker']
         request['broker']['task'] = compose_queue(RoutingKeys.TASK)
@@ -102,13 +103,17 @@ class Dispatcher:
 
     def _disconnect_handler(self, request: dict):
         """
-
+        Removes agent instance on dispatcher.
         """
+        logger.info(f'Disconnect request received {request["id"]}')
         if request['id'] in self.agents:
             self.agents.pop(request['id'])
         request['result'] = True
         return request
 
     def _relay(self, request: dict):
+        """
+        Returns received request.
+        """
         logger.debug(f'Relay request called')
         return request
