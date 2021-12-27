@@ -61,3 +61,14 @@ def test_agent_disconnect(dispatcher: Dispatcher, agent_on_dispatcher: Agent):
     agent = agent_on_dispatcher
     assert agent.disconnect(), 'Agent Disconnect request has failed'
     assert agent.id not in dispatcher.agents, 'Agent registration is still active on Dispatcher'
+    assert not agent.broker, 'Agent is not disconnected from Broker'
+    assert agent.id == 0, 'Agent is not dropped'
+
+
+def test_agent_connect_after_disconnect(dispatcher: Dispatcher, agent_on_dispatcher: Agent):
+    agent = agent_on_dispatcher
+    new_agent_id = dispatcher._next_free_id
+    assert agent.disconnect(), 'Agent Disconnect request has failed'
+    agent.register()
+    agent.init_broker()
+    assert agent.id == new_agent_id, f'Unexpected agent ID {agent.id} instead of {new_agent_id}'

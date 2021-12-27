@@ -1,14 +1,12 @@
 import json
 import logging
-from time import sleep
 from typing import Generator, Union
 
 import pika
 from pika.exceptions import AMQPConnectionError
 
 from common.constants import BROKER, EXCHANGE, QUEUE, SECOND
-from common.defaults import CONNECTION_RETRY_COUNT, RECONNECT_DELAY,\
-    EXCHANGE_NAME, EXCHANGE_TYPE, RoutingKeys
+from common.defaults import EXCHANGE_NAME, EXCHANGE_TYPE, RoutingKeys
 
 logger = logging.getLogger(BROKER)
 logging.getLogger('pika').setLevel(logging.WARNING)
@@ -67,21 +65,14 @@ class Broker:
         Establish connection to broker server.
         """
         logger.info(f'Broker connecting to server: {self.host}')
-        for _try in range(CONNECTION_RETRY_COUNT):
-            try:
-                self.connection = pika.BlockingConnection(
-                    pika.ConnectionParameters(host=self.host))
-            except AMQPConnectionError:
-                logger.error(f'Attempt #{_try + 1} has failed.')
-                sleep(RECONNECT_DELAY)
-            else:
-                break
+        try:
+            self.connection = pika.BlockingConnection(
+                pika.ConnectionParameters(host=self.host))
+        except AMQPConnectionError:
+            logger.error(f'Broker server is not reachable.')
         else:
-            message = 'Broker server is not reachable.'
-            logger.error(message)
-            raise ConnectionError(message)
-        self.channel = self.connection.channel()
-        self.channel.basic_qos(prefetch_count=1)
+            self.channel = self.connection.channel()
+            self.channel.basic_qos(prefetch_count=1)
 
     def setup_exchange(self,
                        ex_name: str = EXCHANGE_NAME,

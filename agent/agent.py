@@ -104,8 +104,15 @@ class Agent(AgentBase):
         request = deepcopy(Disconnect)
         request['id'] = self.id
         reply = self.socket.send(request)
-        # TODO: Finalise disconnect
+        if reply['result']:
+            self.broker.close()
+            self.broker = None
+            self.id = 0
         return reply['result']
+
+    def shutdown(self):
+        self.__exit__()
+        exit(0)
 
 
 class RemoteAgent(AgentBase):
