@@ -70,9 +70,11 @@ class Broker:
                 pika.ConnectionParameters(host=self.host))
         except AMQPConnectionError:
             logger.error(f'Broker server is not reachable.')
+            return False
         else:
             self.channel = self.connection.channel()
             self.channel.basic_qos(prefetch_count=1)
+            return True
 
     def setup_exchange(self,
                        ex_name: str = EXCHANGE_NAME,

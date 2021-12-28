@@ -22,13 +22,11 @@ class Client:
         self.broker = None
 
     def __enter__(self):
+        self.socket.establish()
         return self
 
     def __exit__(self, *exc_info):
         self.socket.close()
-
-    def connect(self):
-        self.socket.establish()
 
     def get_client_queues(self):
         request = deepcopy(Client_queues)

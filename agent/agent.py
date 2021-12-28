@@ -49,13 +49,11 @@ class Agent(AgentBase):
         self.token = token
 
     def __enter__(self):
+        self.socket.establish()
         return self
 
     def __exit__(self, *exc_info):
         self.close()
-
-    def connect(self):
-        self.socket.establish()
 
     def close(self):
         if self.broker:

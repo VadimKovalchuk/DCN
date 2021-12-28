@@ -25,7 +25,7 @@ expected_task_sequence = (0, 2, 4, 1, 3, 5, 6, 7, 8, 9)
 def create_agent(name: Union[str, int]) -> Agent:
     agent = Agent(token=AGENT_TEST_TOKEN, dsp_port=DISPATCHER_PORT)
     agent.name = str(name)
-    agent.connect()
+    agent.socket.establish()
     agent.register()
     agent.init_broker()
     agent.broker._inactivity_timeout = 0.1

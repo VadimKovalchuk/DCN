@@ -1,4 +1,5 @@
 import logging
+from time import sleep
 from typing import Callable, Union
 
 from agent.agent import RemoteAgent
@@ -28,6 +29,8 @@ class Dispatcher:
         self._interrupt: Union[None, Callable] = None
 
     def __enter__(self):
+        self.socket.establish()
+        self.configure_broker()
         return self
 
     def __exit__(self, *exc_info):
@@ -35,13 +38,12 @@ class Dispatcher:
         self.socket.close()
         self.broker.close()
 
-    def connect(self):
-        self.socket.establish()
-        self.broker.connect()
-        self.broker.setup_exchange()
-        self.broker.input_queue = compose_queue(RoutingKeys.DISPATCHER)
+    def configure_broker(self):
+        if self.broker.connect() and not self.broker.input_queue:
+            self.broker.setup_exchange()
+            self.broker.input_queue = compose_queue(RoutingKeys.DISPATCHER)
 
-    def listen(self, polling_timeout: int = 30 * SECOND):
+    def listen(self, polling_timeout: int = 10 * SECOND):
         while self._listen:
             expired = self.socket.listen(self.request_handler, polling_timeout)
             if self._interrupt and self._interrupt(expired):

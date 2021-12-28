@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def main():
     dispatcher_host, token = sys.argv[1:]
     with Agent(dsp_host=dispatcher_host, token=token) as agent:
-        agent.connect()
+        # agent.connect()
         logger.info('Registering')
         agent.register()
         logger.info('Starting processing')

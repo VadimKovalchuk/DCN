@@ -68,8 +68,7 @@ def broker():
 @pytest.fixture
 def dispatcher():
     with Dispatcher(port=DISPATCHER_PORT) as dispatcher:
-        dispatcher.connect()
-        # dispatcher._interrupt = polling_expiration
+        # dispatcher.connect()
         dispatcher.broker._inactivity_timeout = 0.1 * SECOND
         flush_queue(dispatcher.broker.host, assert_non_empty=False)
         listener = Thread(target=dispatcher.listen, args=[DISPATCHER_LISTEN_TIMEOUT])
@@ -84,7 +83,6 @@ def dispatcher():
 @pytest.fixture
 def agent():
     with Agent(token=AGENT_TEST_TOKEN, dsp_port=DISPATCHER_PORT) as agent:
-        agent.connect()
         yield agent
         if agent.broker and agent.broker.input_queue:
             flush_queue(agent.broker.host, agent.broker.input_queue)
@@ -103,7 +101,6 @@ def client():
     with Client(name='test_client',
                 token=CLIENT_TEST_TOKEN,
                 dsp_port=DISPATCHER_PORT) as client:
-        client.connect()
         yield client
         flush_queue(client.broker.host, client.broker.input_queue)
 
