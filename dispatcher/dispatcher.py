@@ -39,15 +39,21 @@ class Dispatcher:
         self.broker.close()
 
     def configure_broker(self):
+        self.broker._inactivity_timeout = 0.01 * SECOND
         if self.broker.connect() and not self.broker.input_queue:
             self.broker.setup_exchange()
-            self.broker.input_queue = compose_queue(RoutingKeys.DISPATCHER)
+            self.broker.declare(input_queue=compose_queue(RoutingKeys.DISPATCHER))
 
     def listen(self, polling_timeout: int = 10 * SECOND):
         while self._listen:
             expired = self.socket.listen(self.request_handler, polling_timeout)
             if self._interrupt and self._interrupt(expired):
                 break
+            if not self.broker.input_queue and not self.broker.channel.is_open:
+                self.configure_broker()
+            else:
+                for task in self.broker.pulling_generator():
+                    logger.debug(f'Got dispatcher task {task}')
 
     def default_request_handler(self, request: dict):
         commands = {

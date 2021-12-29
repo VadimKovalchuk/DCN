@@ -98,6 +98,15 @@ class Agent(AgentBase):
         if 'commands' in reply:
             self.commands = reply['commands']
 
+    def apply_commands(self):
+        for command in self.commands:
+            _method = getattr(self, command)
+            if not _method():
+                logger.error(f'Method "{_method}" has failed to apply')
+                return False
+        else:
+            return True
+
     def disconnect(self):
         request = deepcopy(Disconnect)
         request['id'] = self.id

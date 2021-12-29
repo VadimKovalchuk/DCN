@@ -72,3 +72,12 @@ def test_agent_connect_after_disconnect(dispatcher: Dispatcher, agent_on_dispatc
     agent.register()
     agent.init_broker()
     assert agent.id == new_agent_id, f'Unexpected agent ID {agent.id} instead of {new_agent_id}'
+
+
+def test_agent_command_apply(dispatcher: Dispatcher, agent_on_dispatcher: Agent):
+    agent = agent_on_dispatcher
+    remote_agent: RemoteAgent = dispatcher.agents[agent.id]
+    remote_agent.commands = ['disconnect']
+    agent.pulse()
+    assert agent.apply_commands(), 'Agent command execution failure'
+    assert agent.id == 0, 'Agent is not dropped'
