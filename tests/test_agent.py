@@ -1,12 +1,12 @@
 from copy import deepcopy
-from functools import partial
 import logging
 
-from agent.agent import Agent
+from agent.agent import Agent, RemoteAgent
 from dispatcher.dispatcher import Dispatcher
 from common.broker import Broker
 from common.data_structures import compose_queue, task_body
 from common.defaults import RoutingKeys
+from common.request_types import Commands, Disconnect
 
 
 logger = logging.getLogger(__name__)
@@ -15,8 +15,7 @@ logger = logging.getLogger(__name__)
 def test_agent_registration(dispatcher: Dispatcher, agent: Agent):
     name = 'agent_test_name'
     agent.name = name
-    interrupt = partial(dispatcher.listen, 1)
-    agent.register(interrupt)
+    agent.register()
     assert agent.id in dispatcher.agents, 'Agent ID mismatch'
     assert agent.name == dispatcher.agents[agent.id].name, \
         'Agent name mismatch'
@@ -25,10 +24,9 @@ def test_agent_registration(dispatcher: Dispatcher, agent: Agent):
 
 
 def test_agent_pulse(dispatcher: Dispatcher, agent: Agent):
-    interrupt = partial(dispatcher.listen, 1)
-    agent.register(interrupt)
+    agent.register()
     for _ in range(10):
-        assert agent.pulse(interrupt), 'Wrong reply status'
+        assert agent.pulse(), 'Wrong reply status'
 
 
 def test_agent_queues(agent_on_dispatcher: Agent, broker: Broker):
@@ -49,3 +47,37 @@ def test_agent_queues(agent_on_dispatcher: Agent, broker: Broker):
     broker.set_task_done(result)
     assert task_result == result.body, \
         'Wrong Agent result is received from task queue'
+
+
+def test_agent_command_delivery(dispatcher: Dispatcher, agent_on_dispatcher: Agent):
+    agent = agent_on_dispatcher
+    remote_agent: RemoteAgent = dispatcher.agents[agent.id]
+    remote_agent.commands = ['test']
+    agent.pulse()
+    assert agent.commands == ['test'], 'Agent command delivery has failed'
+
+
+def test_agent_disconnect(dispatcher: Dispatcher, agent_on_dispatcher: Agent):
+    agent = agent_on_dispatcher
+    assert agent.disconnect(), 'Agent Disconnect request has failed'
+    assert agent.id not in dispatcher.agents, 'Agent registration is still active on Dispatcher'
+    assert not agent.broker, 'Agent is not disconnected from Broker'
+    assert agent.id == 0, 'Agent is not dropped'
+
+
+def test_agent_connect_after_disconnect(dispatcher: Dispatcher, agent_on_dispatcher: Agent):
+    agent = agent_on_dispatcher
+    new_agent_id = dispatcher._next_free_id
+    assert agent.disconnect(), 'Agent Disconnect request has failed'
+    agent.register()
+    agent.init_broker()
+    assert agent.id == new_agent_id, f'Unexpected agent ID {agent.id} instead of {new_agent_id}'
+
+
+def test_agent_command_apply(dispatcher: Dispatcher, agent_on_dispatcher: Agent):
+    agent = agent_on_dispatcher
+    remote_agent: RemoteAgent = dispatcher.agents[agent.id]
+    remote_agent.commands = ['disconnect']
+    agent.pulse()
+    assert agent.apply_commands(), 'Agent command execution failure'
+    assert agent.id == 0, 'Agent is not dropped'

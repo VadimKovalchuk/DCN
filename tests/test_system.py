@@ -22,22 +22,22 @@ test_tasks = {i: {'id': i, 'task': random()} for i in range(10)}
 expected_task_sequence = (0, 2, 4, 1, 3, 5, 6, 7, 8, 9)
 
 
-def create_agent(name: Union[str, int], interrupt: Callable) -> Agent:
+def create_agent(name: Union[str, int]) -> Agent:
     agent = Agent(token=AGENT_TEST_TOKEN, dsp_port=DISPATCHER_PORT)
     agent.name = str(name)
-    agent.connect()
-    agent.register(interrupt)
+    agent.socket.establish()
+    agent.register()
+    agent.init_broker()
     agent.broker._inactivity_timeout = 0.1
     return agent
 
 
 def test_tasks_distribution(dispatcher: Dispatcher, client: Client):
-    interrupt = partial(dispatcher.listen, 1)
     client.name = 'test'
-    client.get_client_queues(interrupt)
+    client.get_client_queues()
     logger.info(f'{len([client.broker.push(task) for _,task in test_tasks.items()])}'
                 ' tasks generated')
-    agents = [create_agent(name, interrupt) for name in range(3)]
+    agents = [create_agent(name) for name in range(3)]
     for agent, exp_id in zip(cycle(agents), expected_task_sequence):
         logger.debug(f'{agent} expects task {exp_id}')
         task_queue = agent.broker.pulling_generator()

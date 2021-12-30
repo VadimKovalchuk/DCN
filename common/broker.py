@@ -1,19 +1,17 @@
 import json
 import logging
-from time import sleep
 from typing import Generator, Union
 
 import pika
 from pika.exceptions import AMQPConnectionError
 
 from common.constants import BROKER, EXCHANGE, QUEUE, SECOND
-from common.defaults import CONNECTION_RETRY_COUNT, RECONNECT_DELAY,\
-    EXCHANGE_NAME, EXCHANGE_TYPE, RoutingKeys
+from common.defaults import EXCHANGE_NAME, EXCHANGE_TYPE, RoutingKeys
 
 logger = logging.getLogger(BROKER)
 logging.getLogger('pika').setLevel(logging.WARNING)
 # RabbitMQ running container is required for current module operations
-# sudo docker run -dit --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3.8.4-management
+# sudo docker run -dit --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3.9.11-management
 
 
 def validate_task(method, properties, task_str):
@@ -67,21 +65,16 @@ class Broker:
         Establish connection to broker server.
         """
         logger.info(f'Broker connecting to server: {self.host}')
-        for _try in range(CONNECTION_RETRY_COUNT):
-            try:
-                self.connection = pika.BlockingConnection(
-                    pika.ConnectionParameters(host=self.host))
-            except AMQPConnectionError:
-                logger.error(f'Attempt #{_try + 1} has failed.')
-                sleep(RECONNECT_DELAY)
-            else:
-                break
+        try:
+            self.connection = pika.BlockingConnection(
+                pika.ConnectionParameters(host=self.host))
+        except AMQPConnectionError:
+            logger.error(f'Broker server is not reachable.')
+            return False
         else:
-            message = 'Broker server is not reachable.'
-            logger.error(message)
-            raise ConnectionError(message)
-        self.channel = self.connection.channel()
-        self.channel.basic_qos(prefetch_count=1)
+            self.channel = self.connection.channel()
+            self.channel.basic_qos(prefetch_count=1)
+            return True
 
     def setup_exchange(self,
                        ex_name: str = EXCHANGE_NAME,

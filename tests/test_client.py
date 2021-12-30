@@ -10,8 +10,7 @@ logger = logging.getLogger(__name__)
 
 def test_client_initialization(dispatcher, client):
     client.name = 'client_test_name'
-    interrupt = partial(dispatcher.listen, 1)
-    client.get_client_queues(interrupt)
+    client.get_client_queues()
     assert client.broker, 'Broker instance is missing'
     assert client.broker.output_queue == compose_queue(RoutingKeys.TASK), \
         f'Output queue is not {RoutingKeys.TASK}'
@@ -23,8 +22,7 @@ def test_client_initialization(dispatcher, client):
 def test_client_queues(dispatcher, client, broker):
     name = 'client_test_name'
     client.name = name
-    interrupt = partial(dispatcher.listen, 1)
-    client.get_client_queues(interrupt)
+    client.get_client_queues()
     test_task = deepcopy(task_body)
     test_task['arguments'] = 'client_task_test'
     client.broker.push(test_task)

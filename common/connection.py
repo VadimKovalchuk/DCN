@@ -34,6 +34,7 @@ class Connection:
     def __exit__(self, *exc_info):
         logger.info(f'Closing {self}')
         self.socket.close()
+        self.context.term()
 
     @staticmethod
     def _get_free_port() -> str:
@@ -83,24 +84,38 @@ class RequestConnection(Connection):
         logger.info(f'Establishing connection to: {address}')
         self.socket.connect(address)
 
-    def send(self, message: dict, timeout: int = 30 * SECOND,
-             callback: Callable = None) -> dict:
+    def _out(self, message: dict):
         """
-        Sends request(message) via established connection.
+        Sends request(message) via established connection
+
+        :param message: request payload
+        """
+        self.socket.send_json(message)
+
+    def _in(self, timeout: int) -> dict:
+        """
+        Poll for reply from the remote host and returns received reply.
+
+        :param timeout: timeout for message transmission
+        :return: reply from remote host
+        """
+        if self.socket.poll(timeout * 1000):  # milliseconds
+            return self.socket.recv_json()
+        else:
+            return {}
+
+    def send(self, message: dict, timeout: int = 30 * SECOND) -> dict:
+        """
+        Sends request(message) via established connection and returns its reply.
 
         :param message: request payload
         :param timeout: timeout for message transmission
         :param callback: function that may be called after request is sent
             and before reply is received. Mostly used for testing.
-        :return:
+        :return: reply from remote host
         """
-        self.socket.send_json(message)
-        if callback:
-            callback()
-        if self.socket.poll(timeout * 1000):  # milliseconds
-            return self.socket.recv_json()
-        else:
-            raise TimeoutError('No reply for sent request')
+        self._out(message)
+        return self._in(timeout)
 
     def close(self):
         logger.info(f'Closing {self}')

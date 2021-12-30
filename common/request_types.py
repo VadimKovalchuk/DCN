@@ -1,14 +1,15 @@
 class Commands:
-    Register = 'register'
-    Pulse = 'pulse'
+    Agent_queues = 'agent_queues'
     Client_queues = 'client_queues'
+    Disconnect = 'disconnect'
+    Pulse = 'pulse'
+    Register_agent = 'register_agent'
+    Relay = 'relay'
 
 
-Register = {
+Agent_queues = {
     'id': 0,
-    'command': Commands.Register,
-    'token': 'unified',
-    'name': '',
+    'command': Commands.Agent_queues,
     'broker': {
         'host': '',
         'task': '',
@@ -17,15 +18,36 @@ Register = {
     'result': False
 }
 
-Pulse = {
-    'id': 0,
-    'command': Commands.Pulse,
-    'reply': {}
-}
 
 Client_queues = {
     'command': Commands.Client_queues,
     'token': '',
+    'broker': {
+        'host': '',
+        'task': '',
+        'result': ''
+    },
+    'result': False
+}
+
+Disconnect = {
+    'id': 0,
+    'command': Commands.Disconnect,
+    'result': False
+}
+
+Pulse = {
+    'id': 0,
+    'command': Commands.Pulse,
+    'reply': {},
+    'result': False
+}
+
+Register_agent = {
+    'id': 0,
+    'command': Commands.Register_agent,
+    'token': 'unified',
+    'name': '',
     'broker': {
         'host': '',
         'task': '',

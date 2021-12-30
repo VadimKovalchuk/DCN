@@ -1,4 +1,5 @@
 import logging
+from time import sleep
 from typing import Callable, Union
 
 from agent.agent import RemoteAgent
@@ -19,7 +20,7 @@ class Dispatcher:
                  port: Union[int, str] = '',
                  broker_host: str = ''):
         logger.info('Starting Dispatcher')
-        self.connection = ReplyConnection(ip, port)
+        self.socket = ReplyConnection(ip, port)
         self.broker = Broker(broker_host if broker_host else ip)
         self.agents = {}
         self.request_handler = self.default_request_handler
@@ -28,59 +29,79 @@ class Dispatcher:
         self._interrupt: Union[None, Callable] = None
 
     def __enter__(self):
+        self.socket.establish()
+        self.configure_broker()
         return self
 
     def __exit__(self, *exc_info):
-        logger.info(f'Closing Dispatcher connection:{self.connection}')
-        self.connection.close()
+        logger.info(f'Closing Dispatcher connection:{self.socket}')
+        self.socket.close()
         self.broker.close()
 
-    def connect(self):
-        self.connection.establish()
-        self.broker.connect()
-        self.broker.setup_exchange()
-        self.broker.input_queue = compose_queue(RoutingKeys.DISPATCHER)
+    def configure_broker(self):
+        self.broker._inactivity_timeout = 0.01 * SECOND
+        if self.broker.connect() and not self.broker.input_queue:
+            self.broker.setup_exchange()
+            self.broker.declare(input_queue=compose_queue(RoutingKeys.DISPATCHER))
 
-    def listen(self, polling_timeout: int = 30 * SECOND):
+    def listen(self, polling_timeout: int = 10 * SECOND):
         while self._listen:
-            expired = self.connection.listen(self.request_handler, polling_timeout)
+            expired = self.socket.listen(self.request_handler, polling_timeout)
             if self._interrupt and self._interrupt(expired):
                 break
+            if not self.broker.input_queue and not self.broker.channel.is_open:
+                self.configure_broker()
+            else:
+                for task in self.broker.pulling_generator():
+                    logger.debug(f'Got dispatcher task {task}')
 
     def default_request_handler(self, request: dict):
         commands = {
-            Commands.Register: self._register_handler,
+            Commands.Register_agent: self._register_agent_handler,
+            Commands.Agent_queues: self._agent_queues_handler,
             Commands.Pulse: self._pulse_handler,
-            Commands.Client_queues: self._client_handler
+            Commands.Client_queues: self._client_handler,
+            Commands.Relay: self._relay,
+            Commands.Disconnect: self._disconnect_handler
         }
         assert request['command'] in commands, 'Command ' \
             f'{request["command"]} is not registered in dispatcher request handler'
         command = commands[request['command']]
         return command(request)
 
-    def _register_handler(self, request: dict):
-        logger.info(f'Registration request received {request["name"]}')
+    def _register_agent_handler(self, request: dict):
+        logger.info(f'Registration request received {request["name"]}({self._next_free_id})')
         request['id'] = self._next_free_id
         agent = RemoteAgent(self._next_free_id)
         agent.name = request['name']
-        config = Database.get_agent_param(request['token'])
-        request['broker']['host'] = config['broker']
-        request['broker']['task'] = compose_queue(RoutingKeys.TASK)
-        request['broker']['result'] = compose_queue(RoutingKeys.RESULTS)
+        agent.token = request['token']
         self.agents[self._next_free_id] = agent
         logger.info(f'New agent id={agent.id}')
         request['result'] = True
         self._next_free_id += 1
         return request
 
+    def _agent_queues_handler(self, request: dict):
+        """
+        Returns Host and queues that agent should connect to.
+        """
+        agent = self.agents[request['id']]
+        logger.info(f'Agent queues request received from {agent}')
+        config = Database.get_agent_param(agent.token)
+        request['broker']['host'] = config['broker']
+        request['broker']['task'] = compose_queue(RoutingKeys.TASK)
+        request['broker']['result'] = compose_queue(RoutingKeys.RESULTS)
+        request['result'] = True
+        return request
+
     def _pulse_handler(self, request: dict):
-        logger.debug(f'Pulse request received {request["id"]}')
+        logger.info(f'Pulse request received {request["id"]}')
         agent = self.agents[request['id']]
         reply = agent.sync(request)
         return reply
 
     def _client_handler(self, request: dict):
-        logger.debug(f'Client queues are requested by: {request["name"]}')
+        logger.info(f'Client queues are requested by: {request["name"]}')
         config = Database.get_client_param(request['token'])
         request['broker']['host'] = config['broker']
         request['broker']['task'] = compose_queue(RoutingKeys.TASK)
@@ -88,11 +109,19 @@ class Dispatcher:
         request['result'] = True
         return request
 
+    def _disconnect_handler(self, request: dict):
+        """
+        Removes agent instance on dispatcher.
+        """
+        logger.info(f'Disconnect request received {request["id"]}')
+        if request['id'] in self.agents:
+            self.agents.pop(request['id'])
+        request['result'] = True
+        return request
 
-def main():
-    with Dispatcher() as dispatcher:
-        dispatcher.listen()
-
-
-if __name__ == '__main__':
-    main()
+    def _relay(self, request: dict):
+        """
+        Returns received request.
+        """
+        logger.debug(f'Relay request called')
+        return request

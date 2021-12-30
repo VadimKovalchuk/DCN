@@ -13,17 +13,19 @@ from common.broker import Broker, Task
 from common.connection import RequestConnection
 from common.constants import AGENT, QUEUE
 from common.data_structures import task_report
-from common.request_types import Register, Pulse
+from common.request_types import Agent_queues, Disconnect, Register_agent, Pulse
 
 logger = logging.getLogger(AGENT)
 
 parent_path = pathlib.Path(__file__).parent.absolute()
 sys.path.append(f'{parent_path}/modules')
 
+
 class AgentBase:
     def __init__(self):
         self.id = 0
         self.name = ''
+        self.commands = []
         self.token = ''
         self.last_sync = datetime.utcnow()
 
@@ -32,7 +34,7 @@ class AgentBase:
         ...
 
     def __str__(self):
-        return f'Agent({self.id})'
+        return f'Agent: {self.name}({self.id})'
 
 
 class Agent(AgentBase):
@@ -47,45 +49,77 @@ class Agent(AgentBase):
         self.token = token
 
     def __enter__(self):
+        self.socket.establish()
         return self
 
     def __exit__(self, *exc_info):
         self.close()
-
-    def connect(self):
-        self.socket.establish()
 
     def close(self):
         if self.broker:
             self.broker.close()
         self.socket.close()
 
-    def register(self, callback: Callable = None):
-        request = deepcopy(Register)
+    def register(self):
+        request = deepcopy(Register_agent)
         if self.name:
             request['name'] = self.name
         request['token'] = self.token
-        reply = self.socket.send(request, callback=callback)
+        reply = self.socket.send(request)
         if reply['result']:
             self.id = reply['id']
+            self.sync(reply)
+        return reply['result']
+
+    def init_broker(self):
+        """
+        Request Agent queues on Broker from Dispatcher.
+        """
+        request = deepcopy(Agent_queues)
+        request['token'] = self.token
+        request['id'] = self.id
+        reply = self.socket.send(request)
+        if reply['result']:
             self.sync(reply)
             self.broker = Broker(reply['broker']['host'])
             self.broker.connect()
             self.broker.declare(reply['broker']['task'],
                                 reply['broker']['result'])
 
-    def pulse(self, callback: Callable = None) -> bool:
+    def pulse(self) -> bool:
         request = deepcopy(Pulse)
         request['id'] = self.id
-        reply = self.socket.send(request, callback=callback)
-        self.sync(reply)
-        return reply['reply']['status']
+        reply = self.socket.send(request)
+        self.sync(reply['reply'])
+        return reply['result']
 
     def sync(self, reply: dict):
         self.last_sync = datetime.utcnow()
+        if 'commands' in reply:
+            self.commands = reply['commands']
 
-    def __str__(self):
-        return f'Agent: {self.name}({self.id})'
+    def apply_commands(self):
+        for command in self.commands:
+            _method = getattr(self, command)
+            if not _method():
+                logger.error(f'Method "{_method}" has failed to apply')
+                return False
+        else:
+            return True
+
+    def disconnect(self):
+        request = deepcopy(Disconnect)
+        request['id'] = self.id
+        reply = self.socket.send(request)
+        if reply['result']:
+            self.broker.close()
+            self.broker = None
+            self.id = 0
+        return reply['result']
+
+    def shutdown(self):
+        self.__exit__()
+        exit(0)
 
 
 class RemoteAgent(AgentBase):
@@ -96,7 +130,9 @@ class RemoteAgent(AgentBase):
 
     def sync(self, request: dict):
         self.last_sync = datetime.utcnow()
-        request['reply'] = {'status': 'ok'}
+        if self.commands:
+            request['reply']['commands'] = self.commands
+        request['result'] = True
         return request
 
 
