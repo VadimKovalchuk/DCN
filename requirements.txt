@@ -1,12 +1,4 @@
-attrs==19.3.0
-docker==5.0.0
-more-itertools==8.2.0
-packaging==20.3
-pika==1.1.0
-pluggy==0.13.1
-py==1.8.1
-pyparsing==2.4.7
-pytest==5.4.1
-pyzmq==19.0.0
-six==1.14.0
-wcwidth==0.1.9
+docker==5.0.3
+pika==1.2.0
+pytest==6.2.5
+pyzmq==22.3.0
