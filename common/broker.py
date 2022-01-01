@@ -60,6 +60,15 @@ class Broker:
     def __exit__(self, *exc_info):
         self.close()
 
+    @property
+    def connected(self):
+        if self.connection and \
+                self.channel and \
+                self.input_queue:
+            return True
+        else:
+            return False
+
     def connect(self):
         """
         Establish connection to broker server.

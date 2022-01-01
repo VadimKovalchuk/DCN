@@ -1,5 +1,5 @@
 import logging
-from time import sleep
+from time import monotonic
 from typing import Callable, Union
 
 from agent.agent import RemoteAgent
@@ -44,16 +44,18 @@ class Dispatcher:
             self.broker.setup_exchange()
             self.broker.declare(input_queue=compose_queue(RoutingKeys.DISPATCHER))
 
-    def listen(self, polling_timeout: int = 10 * SECOND):
+    def listen(self, polling_timeout: int = 60 * SECOND):
+        ts = monotonic()
         while self._listen:
             expired = self.socket.listen(self.request_handler, polling_timeout)
             if self._interrupt and self._interrupt(expired):
                 break
-            if not self.broker.input_queue and not self.broker.channel.is_open:
-                self.configure_broker()
-            else:
-                for task in self.broker.pulling_generator():
-                    logger.debug(f'Got dispatcher task {task}')
+            if monotonic() > ts + 60 * SECOND:
+                if not self.broker.connected:
+                    self.configure_broker()
+                else:
+                    for task in self.broker.pulling_generator():
+                        logger.debug(f'Got dispatcher task {task}')
 
     def default_request_handler(self, request: dict):
         commands = {
@@ -87,11 +89,12 @@ class Dispatcher:
         """
         agent = self.agents[request['id']]
         logger.info(f'Agent queues request received from {agent}')
-        config = Database.get_agent_param(agent.token)
-        request['broker']['host'] = config['broker']
-        request['broker']['task'] = compose_queue(RoutingKeys.TASK)
-        request['broker']['result'] = compose_queue(RoutingKeys.RESULTS)
-        request['result'] = True
+        if self.broker.connected:
+            config = Database.get_agent_param(agent.token)
+            request['broker']['host'] = config['broker']
+            request['broker']['task'] = compose_queue(RoutingKeys.TASK)
+            request['broker']['result'] = compose_queue(RoutingKeys.RESULTS)
+            request['result'] = True
         return request
 
     def _pulse_handler(self, request: dict):
@@ -102,11 +105,12 @@ class Dispatcher:
 
     def _client_handler(self, request: dict):
         logger.info(f'Client queues are requested by: {request["name"]}')
-        config = Database.get_client_param(request['token'])
-        request['broker']['host'] = config['broker']
-        request['broker']['task'] = compose_queue(RoutingKeys.TASK)
-        request['broker']['result'] = compose_queue(request['name'])
-        request['result'] = True
+        if self.broker.connected:
+            config = Database.get_client_param(request['token'])
+            request['broker']['host'] = config['broker']
+            request['broker']['task'] = compose_queue(RoutingKeys.TASK)
+            request['broker']['result'] = compose_queue(request['name'])
+            request['result'] = True
         return request
 
     def _disconnect_handler(self, request: dict):

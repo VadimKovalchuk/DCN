@@ -27,7 +27,7 @@ def create_agent(name: Union[str, int]) -> Agent:
     agent.name = str(name)
     agent.socket.establish()
     agent.register()
-    agent.init_broker()
+    agent.request_broker_data()
     agent.broker._inactivity_timeout = 0.1
     return agent
 

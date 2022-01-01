@@ -91,7 +91,7 @@ def agent():
 @pytest.fixture()
 def agent_on_dispatcher(dispatcher: Dispatcher, agent: Agent):
     agent.register()
-    agent.init_broker()
+    agent.request_broker_data()
     agent.broker._inactivity_timeout = 0.1 * SECOND
     yield agent
 

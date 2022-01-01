@@ -71,7 +71,7 @@ class Agent(AgentBase):
             self.sync(reply)
         return reply['result']
 
-    def init_broker(self):
+    def request_broker_data(self):
         """
         Request Agent queues on Broker from Dispatcher.
         """

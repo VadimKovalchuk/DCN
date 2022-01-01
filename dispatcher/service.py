@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 def main():
     broker_host = sys.argv[1]
     with Dispatcher(broker_host=broker_host) as dispatcher:
-        dispatcher.connect()
         logger.info('Start listening')
         dispatcher.listen()
 

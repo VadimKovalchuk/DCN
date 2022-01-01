@@ -70,7 +70,7 @@ def test_agent_connect_after_disconnect(dispatcher: Dispatcher, agent_on_dispatc
     new_agent_id = dispatcher._next_free_id
     assert agent.disconnect(), 'Agent Disconnect request has failed'
     agent.register()
-    agent.init_broker()
+    agent.request_broker_data()
     assert agent.id == new_agent_id, f'Unexpected agent ID {agent.id} instead of {new_agent_id}'
 
 
