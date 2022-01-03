@@ -1,11 +1,11 @@
 import logging
 import shutil
 
-from functools import partial
 from pathlib import Path
 from threading import Thread
 from time import sleep
 
+import docker
 import pytest
 
 from agent.agent import Agent
@@ -21,6 +21,7 @@ from tests.settings import AGENT_TEST_TOKEN, CLIENT_TEST_TOKEN,\
 logger = logging.getLogger(__name__)
 
 
+BROKER_HOST = '*'
 DISPATCHER_LISTEN_TIMEOUT = 0.01
 
 log_file_formatter = None
@@ -51,18 +52,41 @@ def polling_expiration(is_expired: bool):
     return True
 
 
+@pytest.fixture(autouse=True, scope='session')
+def rabbit_mq():
+    client = docker.from_env()
+    containers_list = client.containers.list(filters={'name': 'rabbitmq'})
+    logger.info([container.name for container in containers_list])
+    if containers_list:
+        container = containers_list[0]
+    else:
+        container = client.containers.run(
+            image='rabbitmq:3.9.11-management',
+            auto_remove=True,
+            detach=True,
+            name='rabbitmq',
+            ports={
+                '5672': '5672',
+                '15672': '15672'
+            }
+        )
+    with Broker(BROKER_HOST) as broker:
+        while not broker.connect():
+            sleep(10)
+    yield container
+
+
 @pytest.fixture
 def broker():
-    host = '*'
-    with Broker(host) as broker:
-        broker.connect()
-        # broker._interrupt = polling_expiration
+    with Broker(BROKER_HOST) as broker:
+        while not broker.connect():
+            sleep(10)
         broker._inactivity_timeout = 0.1 * SECOND
         broker.declare(input_queue=task_queue,
                        output_queue=compose_queue(RoutingKeys.RESULTS))
         yield broker
         input_queue = broker.input_queue
-    flush_queue(host, input_queue)
+    flush_queue(BROKER_HOST, input_queue)
 
 
 @pytest.fixture
