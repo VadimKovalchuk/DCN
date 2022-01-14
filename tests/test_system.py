@@ -67,5 +67,5 @@ def test_full_chain(agent_on_dispatcher: Agent, client_on_dispatcher: Client):
     agent.broker.push(report, report['client'])
     result = next(client.broker.pulling_generator())
     client.broker.set_task_done(result)
-    assert test_task == task.body, \
+    assert test_task['arguments'] == result.body['result'], \
         'Wrong task is received from task queue for Agent'

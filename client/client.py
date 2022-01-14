@@ -26,6 +26,8 @@ class Client:
         return self
 
     def __exit__(self, *exc_info):
+        if self.broker:
+            self.broker.close()
         self.socket.close()
 
     def get_client_queues(self):

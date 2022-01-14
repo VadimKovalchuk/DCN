@@ -160,5 +160,7 @@ class Broker:
 
     def close(self):
         logger.info('Closing broker connection')
+        if self.channel:
+            self.channel.cancel()
         if self.connection:
             self.connection.close()
