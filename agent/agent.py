@@ -157,23 +157,23 @@ class TaskRunner:
         :return:
         bool: validation status (True=passed)
         """
-        logger.debug(self.task.body)
+        _task = self.task.body
+        if not all(key in _task for key in ('id', 'client', 'module', 'function', 'arguments')):
+            self.update_status(False,
+                               f'Mandatory task components are missing')
+            return False
+        logger.info(
+            f"Task ({_task['id']}) is received from "
+            f"{_task['client'][QUEUE]}: {_task['module']}::{_task['function']}"
+        )
         self.report['id'] = self.task.body['id']
         client_queue = self.task.body.get('client')
-        if not client_queue or not client_queue.get(QUEUE):
+        if not client_queue.get(QUEUE):
             self.update_status(False,
                                f'Invalid client queue: {client_queue}')
             return False
         self.report['client'] = self.task.body['client']
-        module = self.task.body.get('module')
-        if not module:
-            self.update_status(False, 'Task module is not defined')
-            return False
         # TODO: Validate module is present
-        function = self.task.body.get('function')
-        if not function:
-            self.update_status(False, 'Task function is not defined')
-            return False
         return True
 
     def get_module(self) -> bool:
@@ -193,6 +193,7 @@ class TaskRunner:
         except AttributeError:
             logger.error(f'Module {self._module} does not contain '
                          f'function {function_name}')
+            return False
 
     def execution(self) -> bool:
         try:
@@ -216,4 +217,5 @@ class TaskRunner:
             else:
                 return False
         else:
+            logger.info('Command execution is completed')
             return True

@@ -45,7 +45,11 @@ def main():
 if __name__ == '__main__':
     log_folder = Path(f'log/agent/{get_datetime_stamp()}_log.txt')
     log_folder.parent.mkdir(parents=True, exist_ok=True)
-    modules = [__name__, AGENT, BROKER]
-    for module_name in modules:
-        setup_module_logger(module_name, logging.DEBUG, log_folder)
+    log_config = [
+        (__name__, logging.DEBUG),
+        (AGENT, logging.INFO),
+        (BROKER, logging.INFO)
+    ]
+    for module_name, level in log_config:
+        setup_module_logger(module_name, level, log_folder)
     main()

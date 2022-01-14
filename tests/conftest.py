@@ -126,7 +126,12 @@ def client():
                 token=CLIENT_TEST_TOKEN,
                 dsp_port=DISPATCHER_PORT) as client:
         yield client
-        flush_queue(client.broker.host, client.broker.input_queue)
+        if client.broker:
+            host = client.broker.host
+            input_queue = client.broker.input_queue
+        else:
+            return
+    flush_queue(host, input_queue)
 
 
 @pytest.fixture()
