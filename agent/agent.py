@@ -2,6 +2,7 @@ import abc
 import logging
 import pathlib
 import sys
+import traceback
 
 from copy import deepcopy
 from datetime import datetime
@@ -206,7 +207,7 @@ class TaskRunner:
             self.update_status(True, '')
             return True
         except Exception as e:
-            self.update_status(False, str(e))
+            self.update_status(False, traceback.format_exc())
             return False
 
     def run(self):

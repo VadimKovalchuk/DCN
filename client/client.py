@@ -1,5 +1,6 @@
 from copy import deepcopy
 import logging
+from time import sleep
 from typing import Callable
 
 from common.broker import Broker
@@ -37,10 +38,24 @@ class Client:
         reply = self.socket.send(request)
         if reply['result']:
             self.broker = Broker(reply['broker']['host'])
-            self.broker.connect()
-            self.broker.declare(reply['broker']['result'], reply['broker']['task'])
+            if self.broker.connect():
+                self.broker.declare(reply['broker']['result'], reply['broker']['task'])
         else:
             ConnectionRefusedError('Invalid credentials or resource is busy')
+
+    def ensure_broker_connection(self, delay: int = 10, retry_count: int = 30):
+        _try = 0
+        while not self.broker.connect():
+            if _try == retry_count:
+                return False
+            sleep(delay)
+        logger.info('Broker connection reached')
+        for _ in range(5):
+            if not self.broker.connected:
+                return False
+            sleep(1)
+        logger.info('Broker connection is stable')
+        return True
 
 
 def main():
