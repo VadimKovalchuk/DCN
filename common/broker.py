@@ -92,6 +92,7 @@ class Broker:
             if _try == retry_count:
                 return False
             sleep(delay)
+            _try += 1
         logger.info('Broker connection reached')
         for _ in range(5):
             if not self.connected:

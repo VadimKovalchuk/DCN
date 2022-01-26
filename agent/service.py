@@ -25,11 +25,10 @@ def main():
             if not registered:
                 registered = agent.register()
             if registered and not agent.broker:
-                all((
-                    agent.request_broker_data(),
-                    agent.broker.ensure_connection(),
+                agent.request_broker_data()
+            if agent.broker and not agent.broker.connected:
+                if agent.broker.ensure_connection():
                     agent.broker.declare()
-                ))
             if agent.broker and agent.broker.connected:
                 for task in agent.broker.pulling_generator():
                     runner = TaskRunner(task)
