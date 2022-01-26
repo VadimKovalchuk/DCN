@@ -25,14 +25,14 @@ def test_broker_smoke():
     with Broker('localhost') as client:
         client.connect()
         client.setup_exchange()
-        client.declare(output_queue=task_input_queue)
+        client.output_queue = task_input_queue
         logger.info('Sending task')
         for i in test_tasks:
             client.push(test_tasks[i])
     with Broker('localhost') as agent:
         agent.connect()
-        agent.declare(input_queue=task_input_queue,
-                      output_queue=task_result_queue)
+        agent.declare(input_queue=task_input_queue)
+        agent.output_queue = task_result_queue
         agent._inactivity_timeout = 0.1
         logger.info('Processing task')
         for task in agent.pulling_generator():

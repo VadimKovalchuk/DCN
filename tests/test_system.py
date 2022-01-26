@@ -28,13 +28,18 @@ def create_agent(name: Union[str, int]) -> Agent:
     agent.socket.establish()
     agent.register()
     agent.request_broker_data()
+    agent.broker.connect()
     agent.broker._inactivity_timeout = 0.1
     return agent
 
 
 def test_tasks_distribution(dispatcher: Dispatcher, client: Client):
     client.name = 'test'
-    client.get_client_queues()
+    all((
+        client.get_client_queues(),
+        client.broker.connect(),
+        client.broker.declare()
+    ))
     logger.info(f'{len([client.broker.push(task) for _,task in test_tasks.items()])}'
                 ' tasks generated')
     agents = [create_agent(name) for name in range(3)]

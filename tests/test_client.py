@@ -22,7 +22,11 @@ def test_client_initialization(dispatcher, client):
 def test_client_queues(dispatcher, client, broker):
     name = 'client_test_name'
     client.name = name
-    client.get_client_queues()
+    assert all((
+        client.get_client_queues(),
+        client.broker.connect(),
+        client.broker.declare()
+    )), 'Broker operability is not reached'
     test_task = deepcopy(task_body)
     test_task['arguments'] = 'client_task_test'
     client.broker.push(test_task)
@@ -33,7 +37,7 @@ def test_client_queues(dispatcher, client, broker):
         'Client task name mismatch'
     answer = task.body
     answer['arguments'] = 'client_task_result'
-    broker.declare(output_queue=compose_queue(client.name))
+    broker.output_queue = compose_queue(client.name)
     broker.push(answer)
     client_task_queue = client.broker.pulling_generator()
     result = next(client_task_queue)

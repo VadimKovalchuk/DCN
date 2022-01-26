@@ -82,8 +82,8 @@ def broker():
         while not broker.connect():
             sleep(10)
         broker._inactivity_timeout = 0.1 * SECOND
-        broker.declare(input_queue=task_queue,
-                       output_queue=compose_queue(RoutingKeys.RESULTS))
+        broker.output_queue = compose_queue(RoutingKeys.RESULTS)
+        broker.declare(input_queue=task_queue)
         yield broker
         input_queue = broker.input_queue
     flush_queue(BROKER_HOST, input_queue)
@@ -114,8 +114,11 @@ def agent():
 
 @pytest.fixture()
 def agent_on_dispatcher(dispatcher: Dispatcher, agent: Agent):
-    agent.register()
-    agent.request_broker_data()
+    assert agent.register(), 'Agent registration on dispatcher has failed'
+    assert agent.request_broker_data(), 'Failed to get agent queues'
+    assert agent.broker, 'Broker class is not instantiated on agent'
+    assert agent.broker.connect(), 'Connection to broker is not reached on agent'
+    assert agent.broker.declare(), 'Failed to declare input queue on agent broker'
     agent.broker._inactivity_timeout = 0.1 * SECOND
     yield agent
 
@@ -136,7 +139,12 @@ def client():
 
 @pytest.fixture()
 def client_on_dispatcher(client: Client, dispatcher: Dispatcher):
-    client.get_client_queues()
+    assert client.get_client_queues(), 'Failed to get client queues'
+    assert client.broker, 'Broker class is not instantiated on client'
+    assert client.broker.input_queue, 'Broker input queue is not defined on client'
+    assert client.broker.output_queue, 'Broker output queue is not defined on client'
+    assert client.broker.connect(), 'Connection to broker is not reached on client'
+    assert client.broker.declare(), 'Failed to declare input queue on client broker'
     client.broker._inactivity_timeout = 0.1 * SECOND
     yield client
 

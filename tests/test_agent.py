@@ -35,8 +35,8 @@ def test_agent_queues(agent_on_dispatcher: Agent, broker: Broker):
     test_task['arguments'] = 'agent_task_test'
     task_result = deepcopy(task_body)
     task_result['arguments'] = 'agent_task_result'
-    broker.declare(input_queue=compose_queue(RoutingKeys.RESULTS),
-                   output_queue=compose_queue(RoutingKeys.TASK))
+    broker.output_queue = compose_queue(RoutingKeys.TASK)
+    broker.declare(compose_queue(RoutingKeys.RESULTS))
     broker.push(test_task)
     task = next(agent.broker.pulling_generator())
     agent.broker.set_task_done(task)

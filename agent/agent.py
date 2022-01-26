@@ -83,9 +83,11 @@ class Agent(AgentBase):
         if reply['result']:
             self.sync(reply)
             self.broker = Broker(reply['broker']['host'])
-            self.broker.connect()
-            self.broker.declare(reply['broker']['task'],
-                                reply['broker']['result'])
+            self.broker.input_queue = reply['broker']['task']
+            self.broker.output_queue = reply['broker']['result']
+            return True
+        else:
+            return False
 
     def pulse(self) -> bool:
         request = deepcopy(Pulse)

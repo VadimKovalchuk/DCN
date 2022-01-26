@@ -1,5 +1,6 @@
 import json
 import logging
+from time import sleep
 from typing import Generator, Union
 
 import pika
@@ -85,6 +86,20 @@ class Broker:
             self.channel.basic_qos(prefetch_count=1)
             return True
 
+    def ensure_connection(self, delay: int = 10, retry_count: int = 30):
+        _try = 0
+        while not self.connect():
+            if _try == retry_count:
+                return False
+            sleep(delay)
+        logger.info('Broker connection reached')
+        for _ in range(5):
+            if not self.connected:
+                return False
+            sleep(1)
+        logger.info('Broker connection is stable')
+        return True
+
     def setup_exchange(self,
                        ex_name: str = EXCHANGE_NAME,
                        ex_type: str = EXCHANGE_TYPE):
@@ -102,26 +117,22 @@ class Broker:
                                     queue=queue,
                                     routing_key=queue)
 
-    def declare(self,
-                input_queue: Union[dict, None] = None,
-                output_queue: Union[dict, None] = None):
+    def declare(self, input_queue: Union[dict, None] = None):
         """
         Declares input and output queues defined for broker instance
 
         :param input_queue: queue that should be set for broker as input
-        :param output_queue: queue that should be set for broker as output
         """
-        if not (input_queue or output_queue):
-            raise RuntimeError('Queue is not defined for Broker')
         if input_queue:
-            in_q = input_queue[QUEUE]
             self.input_queue = input_queue
-            self.channel.queue_declare(queue=in_q)
-            self.channel.queue_bind(exchange=input_queue[EXCHANGE],
-                                    queue=in_q,
-                                    routing_key=in_q)
-        if output_queue:
-            self.output_queue = output_queue
+        if not self.input_queue or not self.connected:
+            return False
+        in_q = self.input_queue[QUEUE]
+        self.channel.queue_declare(queue=in_q)
+        self.channel.queue_bind(exchange=self.input_queue[EXCHANGE],
+                                queue=in_q,
+                                routing_key=in_q)
+        return True
 
     def push(self, message: dict, queue: Union[None, dict] = None):
         """
