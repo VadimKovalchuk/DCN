@@ -12,7 +12,7 @@ from common.defaults import EXCHANGE_NAME, EXCHANGE_TYPE, RoutingKeys
 logger = logging.getLogger(BROKER)
 logging.getLogger('pika').setLevel(logging.WARNING)
 # RabbitMQ running container is required for current module operations
-# sudo docker run -dit --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3.9.11-management
+# sudo docker run -dit --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3.11.2-management
 
 
 def validate_task(method, properties, task_str):
