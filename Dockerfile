@@ -2,10 +2,15 @@ FROM python:3.8
 
 # Installing requirements
 COPY ./requirements.txt /src/
-COPY ./agent/modules/findus-edge/requirements.txt /src/requirements-findus-edge.txt
 RUN pip install -r /src/requirements.txt
-RUN pip install -r /src/requirements-findus-edge.txt
+COPY ./packages/edge/ /src/edge/
+RUN pip install /src/edge/dist/findus_edge-0.0.1-py3-none-any.whl
+RUN rm -rf /src/edge
 
-COPY . /src
+COPY ./agent /src/agent
+COPY ./client /src/client
+COPY ./common /src/common
+COPY ./dispatcher /src/dispatcher
+RUN ls /src/*
 WORKDIR /src
 ENV PYTHONPATH "${PYTHONPATH}/src"
