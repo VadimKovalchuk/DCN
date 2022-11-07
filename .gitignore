@@ -3,5 +3,5 @@
 /.idea/
 __pycache__/
 .pytest_cache
-/agent/modules/findus-edge/
+/dcn/agent/modules/findus-edge/
 /packages/

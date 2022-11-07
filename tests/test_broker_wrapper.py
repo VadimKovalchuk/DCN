@@ -1,9 +1,9 @@
 import logging
 
 from random import random
-from common.broker import Broker, Task
-from common.data_structures import compose_queue
-from common.defaults import RoutingKeys
+from dcn.common.broker import Broker, Task
+from dcn.common.data_structures import compose_queue
+from dcn.common.defaults import RoutingKeys
 
 logger = logging.getLogger(__name__)
 

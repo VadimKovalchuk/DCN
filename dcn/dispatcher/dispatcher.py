@@ -2,14 +2,14 @@ import logging
 from time import monotonic
 from typing import Callable, Union
 
-from agent.agent import RemoteAgent
-from common.broker import Broker
-from common.connection import ReplyConnection
-from common.constants import DISPATCHER, SECOND
-from common.data_structures import compose_queue
-from common.defaults import INIT_AGENT_ID, RoutingKeys
-from common.request_types import Commands
-from common.database import Database
+from dcn.agent.agent import RemoteAgent
+from dcn.common.broker import Broker
+from dcn.common.connection import ReplyConnection
+from dcn.common.constants import DISPATCHER, SECOND
+from dcn.common.data_structures import compose_queue
+from dcn.common.defaults import INIT_AGENT_ID, RoutingKeys
+from dcn.common.request_types import Commands
+from dcn.common.database import Database
 
 logger = logging.getLogger(DISPATCHER)
 

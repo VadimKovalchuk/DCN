@@ -1,9 +1,9 @@
 from copy import deepcopy
 import logging
 
-from common.broker import Broker
-from common.connection import RequestConnection
-from common.request_types import Client_queues
+from dcn.common.broker import Broker
+from dcn.common.connection import RequestConnection
+from dcn.common.request_types import Client_queues
 
 logger = logging.getLogger(__name__)
 

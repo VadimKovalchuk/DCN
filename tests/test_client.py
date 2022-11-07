@@ -1,9 +1,8 @@
 from copy import deepcopy
-from functools import partial
 import logging
 
-from common.data_structures import compose_queue, task_body
-from common.defaults import RoutingKeys
+from dcn.common.data_structures import compose_queue, task_body
+from dcn.common.defaults import RoutingKeys
 
 logger = logging.getLogger(__name__)
 

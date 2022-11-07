@@ -1,12 +1,11 @@
 import logging
 from copy import deepcopy
 from datetime import datetime
-from functools import partial
 
-from common.connection import RequestConnection
-from common.constants import QUEUE
-from common.defaults import RoutingKeys
-from common.request_types import Register_agent, Pulse, Client_queues, Commands
+from dcn.common.connection import RequestConnection
+from dcn.common.data_structures import QUEUE
+from dcn.common.defaults import RoutingKeys
+from dcn.common.request_types import Register_agent, Pulse, Client_queues, Commands
 
 from tests.settings import CLIENT_TEST_TOKEN, DISPATCHER_PORT
 

@@ -3,9 +3,9 @@ import sys
 
 from pathlib import Path
 
-from dispatcher import Dispatcher
-from common.constants import BROKER, DISPATCHER
-from common.logging_tools import get_datetime_stamp, setup_module_logger
+from dcn.dispatcher import Dispatcher
+from dcn.common import BROKER, DISPATCHER
+from dcn.common import get_datetime_stamp, setup_module_logger
 
 logger = logging.getLogger(__name__)
 

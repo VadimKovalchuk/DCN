@@ -1,17 +1,15 @@
-import json
 import logging
 
 from copy import deepcopy
-from functools import partial
 from itertools import cycle
 from random import random
-from typing import Callable, Union
+from typing import Union
 
-from agent.agent import Agent, TaskRunner
-from client.client import Client
-from common.data_structures import compose_queue, task_body
-from common.defaults import RoutingKeys
-from dispatcher.dispatcher import Dispatcher
+from dcn.agent.agent import Agent, TaskRunner
+from dcn.client.client import Client
+from dcn.common.data_structures import compose_queue, task_body
+from dcn.common.defaults import RoutingKeys
+from dcn.dispatcher.dispatcher import Dispatcher
 from tests.settings import AGENT_TEST_TOKEN, DISPATCHER_PORT
 
 logger = logging.getLogger(__name__)

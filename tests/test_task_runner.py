@@ -2,9 +2,9 @@ from copy import deepcopy
 import json
 import logging
 
-from agent.agent import TaskRunner
-from common.broker import Task
-from common.data_structures import task_body
+from dcn.agent.agent import TaskRunner
+from dcn.common.broker import Task
+from dcn.common.data_structures import task_body
 
 logger = logging.getLogger(__name__)
 

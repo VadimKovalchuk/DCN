@@ -6,8 +6,8 @@ from typing import Generator, Union
 import pika
 from pika.exceptions import AMQPConnectionError
 
-from common.constants import BROKER, EXCHANGE, QUEUE, SECOND
-from common.defaults import EXCHANGE_NAME, EXCHANGE_TYPE, RoutingKeys
+from dcn.common.constants import BROKER, EXCHANGE, QUEUE, SECOND
+from dcn.common.defaults import EXCHANGE_NAME, EXCHANGE_TYPE, RoutingKeys
 
 logger = logging.getLogger(BROKER)
 logging.getLogger('pika').setLevel(logging.WARNING)

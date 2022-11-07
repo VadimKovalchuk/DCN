@@ -5,8 +5,8 @@ from typing import Union, Callable
 
 import zmq
 
-from common.constants import SECOND
-from common.defaults import DISPATCHER_PORT
+from dcn.common.constants import SECOND
+from dcn.common.defaults import DISPATCHER_PORT
 
 logger = logging.getLogger(__name__)
 

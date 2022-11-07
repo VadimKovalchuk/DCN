@@ -1,7 +1,7 @@
 from copy import deepcopy
 
-from common.constants import EXCHANGE, QUEUE
-from common.defaults import EXCHANGE_NAME
+from dcn.common.constants import EXCHANGE, QUEUE
+from dcn.common.defaults import EXCHANGE_NAME
 
 queue_template = {
     EXCHANGE: EXCHANGE_NAME,

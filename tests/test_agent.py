@@ -1,13 +1,11 @@
 from copy import deepcopy
 import logging
 
-from agent.agent import Agent, RemoteAgent
-from dispatcher.dispatcher import Dispatcher
-from common.broker import Broker
-from common.data_structures import compose_queue, task_body
-from common.defaults import RoutingKeys
-from common.request_types import Commands, Disconnect
-
+from dcn.agent.agent import Agent, RemoteAgent
+from dcn.dispatcher.dispatcher import Dispatcher
+from dcn.common.broker import Broker
+from dcn.common.data_structures import compose_queue, task_body
+from dcn.common.defaults import RoutingKeys
 
 logger = logging.getLogger(__name__)
 

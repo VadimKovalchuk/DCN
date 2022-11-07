@@ -8,13 +8,11 @@ from copy import deepcopy
 from datetime import datetime
 from importlib import import_module
 
-from typing import Callable
-
-from common.broker import Broker, Task
-from common.connection import RequestConnection
-from common.constants import AGENT, QUEUE
-from common.data_structures import task_report
-from common.request_types import Agent_queues, Disconnect, Register_agent, Pulse
+from dcn.common.broker import Broker, Task
+from dcn.common.connection import RequestConnection
+from dcn.common.constants import AGENT, QUEUE
+from dcn.common.data_structures import task_report
+from dcn.common.request_types import Agent_queues, Disconnect, Register_agent, Pulse
 
 logger = logging.getLogger(AGENT)
 

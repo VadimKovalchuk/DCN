@@ -1,4 +1,4 @@
-from common.constants import SECOND
+from dcn.common.constants import SECOND
 
 # BROKER
 # connection

@@ -4,9 +4,9 @@ import sys
 from pathlib import Path
 from time import sleep, monotonic
 
-from agent import Agent, TaskRunner
-from common.constants import AGENT, BROKER, SECOND
-from common.logging_tools import get_datetime_stamp, setup_module_logger
+from dcn.agent import Agent, TaskRunner
+from dcn.common.constants import AGENT, BROKER, SECOND
+from dcn.common.logging_tools import get_datetime_stamp, setup_module_logger
 
 PULSE_PERIOD = 10 * SECOND
 
