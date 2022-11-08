@@ -1,3 +1,4 @@
 docker==6.0.0
 docker-compose==1.29.2
+pytest==7.2.0
 wheel==0.37.1
