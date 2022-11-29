@@ -13,14 +13,14 @@ services:
       mode: global
     ports:
       - "9999:9999"
-    command: ["python", "dispatcher/service.py", "rabbitmq"]
+    command: ["python", "service/dispatcher.py", "rabbitmq"]
     volumes:
       - ./log/dispatcher/:/src/log/dispatcher/
     depends_on:
       - rabbitmq
   agent:
     image: "dcn:latest"
-    command: ["python", "agent/service.py", "dispatcher", "docker"]
+    command: ["python", "service/agent.py", "dispatcher", "docker"]
     volumes:
       - ./log/agent/:/src/log/agent/
     depends_on:
