@@ -5,6 +5,7 @@ from pathlib import Path
 from threading import Thread
 from time import sleep
 
+import docker
 import pytest
 
 from dcn.agent.agent import Agent
