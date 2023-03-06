@@ -39,10 +39,11 @@ class Dispatcher:
         self.broker.close()
 
     def configure_broker(self):
-        self.broker._inactivity_timeout = 0.01 * SECOND
-        if self.broker.connect() and not self.broker.input_queue:
-            self.broker.setup_exchange()
-            self.broker.declare(input_queue=compose_queue(RoutingKeys.DISPATCHER))
+        self.broker.queue = RoutingKeys.DISPATCHER
+        self.broker.routing_key = RoutingKeys.DISPATCHER
+        for i in range(12):
+            if self.broker.connect():
+                return
 
     def listen(self, polling_timeout: int = 60 * SECOND):
         ts = monotonic()
@@ -93,7 +94,7 @@ class Dispatcher:
             config = Database.get_agent_param(agent.token)
             request['broker']['host'] = config['broker']
             request['broker']['task'] = compose_queue(RoutingKeys.TASK)
-            request['broker']['result'] = compose_queue(RoutingKeys.RESULTS)
+            # request['broker']['result'] = compose_queue(RoutingKeys.RESULTS)
             request['result'] = True
         return request
 
@@ -105,7 +106,7 @@ class Dispatcher:
 
     def _client_handler(self, request: dict):
         logger.info(f'Client queues are requested by: {request["name"]}')
-        if self.broker.connected:
+        if self.broker.is_connected:
             config = Database.get_client_param(request['token'])
             request['broker']['host'] = config['broker']
             request['broker']['task'] = compose_queue(RoutingKeys.TASK)

@@ -73,6 +73,7 @@ def test_dsp_client_queue(dispatcher):
         request['name'] = 'test_dsp_client_queue'
         request['token'] = CLIENT_TEST_TOKEN
         reply = request_connection.send(request, 1)
+        logger.info(reply)
         assert reply['name'] == request['name'], \
             'Name param is modified or wrong reply'
         # TODO: Validate broker host

@@ -5,7 +5,7 @@ from dcn.common.constants import SECOND
 CONNECTION_RETRY_COUNT = 10
 RECONNECT_DELAY = 5 * SECOND
 # exchange
-EXCHANGE_NAME = 'default'
+EXCHANGE_NAME = 'DCN'
 EXCHANGE_TYPE = 'direct'
 
 
