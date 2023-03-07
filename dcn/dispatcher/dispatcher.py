@@ -6,8 +6,8 @@ from dcn.agent.agent import RemoteAgent
 from dcn.common.broker import Broker
 from dcn.common.connection import ReplyConnection
 from dcn.common.constants import DISPATCHER, SECOND
-from dcn.common.data_structures import compose_queue
-from dcn.common.defaults import INIT_AGENT_ID, RoutingKeys
+# from dcn.common.data_structures import compose_queue
+from dcn.common.defaults import EXCHANGE_NAME, INIT_AGENT_ID, RoutingKeys
 from dcn.common.request_types import Commands
 from dcn.common.database import Database
 
@@ -52,11 +52,12 @@ class Dispatcher:
             if self._interrupt and self._interrupt(expired):
                 break
             if monotonic() > ts + 60 * SECOND:
-                if not self.broker.connected:
+                if not self.broker.is_connected:
                     self.configure_broker()
                 else:
-                    for task in self.broker.pulling_generator():
-                        logger.debug(f'Got dispatcher task {task}')
+                    for task in self.broker.consume():
+                        logger.warning(f'Got dispatcher task {task}')
+                ts = monotonic()
 
     def default_request_handler(self, request: dict):
         commands = {
@@ -90,10 +91,11 @@ class Dispatcher:
         """
         agent = self.agents[request['id']]
         logger.info(f'Agent queues request received from {agent}')
-        if self.broker.connected:
+        if self.broker.is_connected:
             config = Database.get_agent_param(agent.token)
             request['broker']['host'] = config['broker']
-            request['broker']['task'] = compose_queue(RoutingKeys.TASK)
+            request['broker']['queue'] = RoutingKeys.TASK
+            # request['broker']['exchange'] = EXCHANGE_NAME
             # request['broker']['result'] = compose_queue(RoutingKeys.RESULTS)
             request['result'] = True
         return request

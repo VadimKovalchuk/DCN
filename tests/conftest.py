@@ -70,20 +70,28 @@ def polling_expiration(is_expired: bool):
 #         while not broker.connect():
 #             sleep(10)
 #     yield container
+@pytest.fixture
+def cleanup_queues():
+    flush_queue(BROKER_HOST, RoutingKeys.TASK)
+    flush_queue(BROKER_HOST, RoutingKeys.RESULTS)
+    yield
+    flush_queue(BROKER_HOST, RoutingKeys.TASK)
+    flush_queue(BROKER_HOST, RoutingKeys.RESULTS)
 
 
 @pytest.fixture
-def broker():
+def broker(cleanup_queues):
     broker = Broker(host=BROKER_HOST, queue=RoutingKeys.TASK)
     while not broker.is_connected:
         broker.connect()
         sleep(10)
     yield broker
     flush_queue(BROKER_HOST, RoutingKeys.TASK)
+    flush_queue(BROKER_HOST, RoutingKeys.RESULTS)
 
 
 @pytest.fixture
-def dispatcher():
+def dispatcher(cleanup_queues):
     with Dispatcher(port=DISPATCHER_PORT) as dispatcher:
         # dispatcher.connect()
         dispatcher.broker._inactivity_timeout = 0.1 * SECOND
@@ -94,26 +102,22 @@ def dispatcher():
         dispatcher._listen = False
         sleep(0.02)  # wait while dispatcher listener is closed
         logger.info(f'Dispatcher listener state: {listener.is_alive()}')
-        flush_queue(dispatcher.broker.host)
 
 
-# @pytest.fixture
-# def agent():
-#     with Agent(token=AGENT_TEST_TOKEN, dsp_port=DISPATCHER_PORT) as agent:
-#         yield agent
-#         if agent.broker and agent.broker.input_queue:
-#             flush_queue(agent.broker.host, agent.broker.input_queue)
+@pytest.fixture
+def agent(cleanup_queues):
+    with Agent(token=AGENT_TEST_TOKEN, dsp_port=DISPATCHER_PORT) as agent:
+        yield agent
 
 
-# @pytest.fixture()
-# def agent_on_dispatcher(dispatcher: Dispatcher, agent: Agent):
-#     assert agent.register(), 'Agent registration on dispatcher has failed'
-#     assert agent.request_broker_data(), 'Failed to get agent queues'
-#     assert agent.broker, 'Broker class is not instantiated on agent'
-#     assert agent.broker.connect(), 'Connection to broker is not reached on agent'
-#     assert agent.broker.declare(), 'Failed to declare input queue on agent broker'
-#     agent.broker._inactivity_timeout = 0.1 * SECOND
-#     yield agent
+@pytest.fixture()
+def agent_on_dispatcher(dispatcher: Dispatcher, agent: Agent):
+    assert agent.register(), 'Agent registration on dispatcher has failed'
+    assert agent.request_broker_data(), 'Failed to get agent queues'
+    assert agent.broker, 'Broker class is not instantiated on agent'
+    assert agent.broker.connect(), 'Connection to broker is not reached on agent'
+    # agent.broker._inactivity_timeout = 0.1 * SECOND
+    yield agent
 
 
 # @pytest.fixture

@@ -1,4 +1,5 @@
 from copy import deepcopy
+from time import sleep
 import logging
 
 from dcn.agent.agent import Agent, RemoteAgent
@@ -33,17 +34,17 @@ def test_agent_queues(agent_on_dispatcher: Agent, broker: Broker):
     test_task['arguments'] = 'agent_task_test'
     task_result = deepcopy(task_body)
     task_result['arguments'] = 'agent_task_result'
-    broker.output_queue = compose_queue(RoutingKeys.TASK)
-    broker.declare(compose_queue(RoutingKeys.RESULTS))
-    broker.push(test_task)
-    task = next(agent.broker.pulling_generator())
-    agent.broker.set_task_done(task)
-    assert test_task == task.body, \
+    broker.publish(test_task, RoutingKeys.TASK)
+    sleep(0.1)
+    _, task = agent.broker.consume()
+    assert test_task == task, \
         'Wrong task is received from task queue for Agent'
-    agent.broker.push(task_result)
-    result = next(broker.pulling_generator())
-    broker.set_task_done(result)
-    assert task_result == result.body, \
+    agent.broker.publish(task_result, RoutingKeys.RESULTS)
+    client = Broker(queue=RoutingKeys.RESULTS, host=agent.broker.host)
+    client.connect()
+    sleep(0.1)
+    _, result = client.consume()
+    assert task_result == result, \
         'Wrong Agent result is received from task queue'
 
 

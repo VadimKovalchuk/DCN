@@ -80,9 +80,10 @@ class Agent(AgentBase):
         reply = self.socket.send(request)
         if reply['result']:
             self.sync(reply)
-            self.broker = Broker(reply['broker']['host'])
-            self.broker.input_queue = reply['broker']['task']
-            self.broker.output_queue = reply['broker']['result']
+            host = reply['broker']['host']
+            queue = reply['broker']['queue']
+            self.broker = Broker(queue=queue, host=host)
+            # self.broker.output_queue = reply['broker']['result']
             return True
         else:
             return False
