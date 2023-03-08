@@ -111,8 +111,8 @@ class Dispatcher:
         if self.broker.is_connected:
             config = Database.get_client_param(request['token'])
             request['broker']['host'] = config['broker']
-            request['broker']['task'] = compose_queue(RoutingKeys.TASK)
-            request['broker']['result'] = compose_queue(request['name'])
+            request['broker']['task'] = RoutingKeys.TASK
+            request['broker']['result'] = request['name']
             request['result'] = True
         return request
 

@@ -8,7 +8,7 @@ from copy import deepcopy
 from datetime import datetime
 from importlib import import_module
 
-from dcn.common.broker import Broker, Task
+from dcn.common.broker import Broker
 from dcn.common.connection import RequestConnection
 from dcn.common.constants import AGENT, QUEUE
 from dcn.common.data_structures import task_report
@@ -139,7 +139,7 @@ class RemoteAgent(AgentBase):
 
 
 class TaskRunner:
-    def __init__(self, task: Task):
+    def __init__(self, task: dict):
         self.task = task
         self.report = deepcopy(task_report)
         self._module = None
@@ -159,27 +159,20 @@ class TaskRunner:
         :return:
         bool: validation status (True=passed)
         """
-        _task = self.task.body
-        if not all(key in _task for key in ('id', 'client', 'module', 'function', 'arguments')):
+        if not all(key in self.task for key in ('id', 'client', 'module', 'function', 'arguments')):
             self.update_status(False,
                                f'Mandatory task components are missing')
             return False
         logger.info(
-            f"Task ({_task['id']}) is received from "
-            f"{_task['client'][QUEUE]}: {_task['module']}::{_task['function']}"
+            f"Task ({self.task['id']}) is received from "
+            f"{self.task['client']}: {self.task['module']}::{self.task['function']}"
         )
-        self.report['id'] = self.task.body['id']
-        client_queue = self.task.body.get('client')
-        if not client_queue.get(QUEUE):
-            self.update_status(False,
-                               f'Invalid client queue: {client_queue}')
-            return False
-        self.report['client'] = self.task.body['client']
-        # TODO: Validate module is present
+        self.report['id'] = self.task['id']
+        self.report['client'] = self.task['client']
         return True
 
     def get_module(self) -> bool:
-        module_name = self.task.body['module']
+        module_name = self.task['module']
         try:
             self._module = import_module(module_name)
             return True
@@ -188,7 +181,7 @@ class TaskRunner:
             return False
 
     def get_function(self) -> bool:
-        function_name = self.task.body['function']
+        function_name = self.task['function']
         try:
             self._function = getattr(self._module, function_name)
             return True
@@ -199,9 +192,9 @@ class TaskRunner:
 
     def execution(self) -> bool:
         try:
-            if self.task.body['arguments']:
+            if self.task['arguments']:
                 self.report['result'] = \
-                    self._function(self.task.body['arguments'])
+                    self._function(self.task['arguments'])
             else:
                 self.report['result'] = \
                     self._function()

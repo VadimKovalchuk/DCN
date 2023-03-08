@@ -35,9 +35,11 @@ class Client:
         request['token'] = self.token
         reply = self.socket.send(request)
         if reply['result']:
-            self.broker = Broker(reply['broker']['host'])
-            self.broker.input_queue = reply['broker']['result']
-            self.broker.output_queue = reply['broker']['task']
+            self.broker = Broker(
+                queue=reply['broker']['result'],
+                host=reply['broker']['host']
+            )
+            self.broker.output_routing_key = reply['broker']['task']
             return True
         else:
             return False

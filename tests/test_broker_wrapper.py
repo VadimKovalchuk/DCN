@@ -1,7 +1,7 @@
 import logging
 
 from random import random
-from dcn.common.broker import Broker, Task
+from dcn.common.broker import Broker
 from dcn.common.data_structures import compose_queue
 from dcn.common.defaults import RoutingKeys
 
@@ -28,7 +28,8 @@ def validator_callback(task):
 
 
 def test_broker_smoke():
-    client = Broker(routing_key=RoutingKeys.TASK)
+    client = Broker()
+    client.output_routing_key = RoutingKeys.TASK
     client.connect()
     logger.info('Sending task')
     for i in test_tasks:

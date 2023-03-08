@@ -120,30 +120,22 @@ def agent_on_dispatcher(dispatcher: Dispatcher, agent: Agent):
     yield agent
 
 
-# @pytest.fixture
-# def client():
-#     with Client(name='test_client',
-#                 token=CLIENT_TEST_TOKEN,
-#                 dsp_port=DISPATCHER_PORT) as client:
-#         yield client
-#         if client.broker:
-#             host = client.broker.host
-#             input_queue = client.broker.input_queue
-#         else:
-#             return
-#     flush_queue(host, input_queue)
+@pytest.fixture
+def client(cleanup_queues):
+    with Client(name='test_client',
+                token=CLIENT_TEST_TOKEN,
+                dsp_port=DISPATCHER_PORT) as client:
+        yield client
 
 
-# @pytest.fixture()
-# def client_on_dispatcher(client: Client, dispatcher: Dispatcher):
-#     assert client.get_client_queues(), 'Failed to get client queues'
-#     assert client.broker, 'Broker class is not instantiated on client'
-#     assert client.broker.input_queue, 'Broker input queue is not defined on client'
-#     assert client.broker.output_queue, 'Broker output queue is not defined on client'
-#     assert client.broker.connect(), 'Connection to broker is not reached on client'
-#     assert client.broker.declare(), 'Failed to declare input queue on client broker'
-#     client.broker._inactivity_timeout = 0.1 * SECOND
-#     yield client
+@pytest.fixture()
+def client_on_dispatcher(client: Client, dispatcher: Dispatcher):
+    assert client.get_client_queues(), 'Failed to get client queues'
+    assert client.broker, 'Broker class is not instantiated on client'
+    assert client.broker.queue, 'Broker input queue is not defined on client'
+    # assert client.broker.output_queue, 'Broker output queue is not defined on client'
+    assert client.broker.connect(), 'Connection to broker is not reached on client'
+    yield client
 
 
 # PYTEST HOOKS

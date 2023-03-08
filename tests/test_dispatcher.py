@@ -77,7 +77,7 @@ def test_dsp_client_queue(dispatcher):
         assert reply['name'] == request['name'], \
             'Name param is modified or wrong reply'
         # TODO: Validate broker host
-        assert reply['broker']['result'][QUEUE] == request['name'], \
+        assert reply['broker']['result'] == request['name'], \
             'Wrong result queue name is defined by dispatcher'
-        assert reply['broker']['task'][QUEUE] == RoutingKeys.TASK, \
+        assert reply['broker']['task'] == RoutingKeys.TASK, \
             f'Task queue is not "{RoutingKeys.TASK}"'
