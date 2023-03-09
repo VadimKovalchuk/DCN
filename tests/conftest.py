@@ -12,7 +12,6 @@ from dcn.agent.agent import Agent
 from dcn.client.client import Client
 from dcn.common.broker import Broker
 from dcn.common.constants import SECOND
-from dcn.common.data_structures import compose_queue
 from dcn.common.defaults import RoutingKeys
 from dcn.dispatcher.dispatcher import Dispatcher
 from tests.settings import AGENT_TEST_TOKEN, CLIENT_TEST_TOKEN,\
@@ -48,28 +47,6 @@ def polling_expiration(is_expired: bool):
     return True
 
 
-# @pytest.fixture(autouse=True, scope='session')
-# def rabbit_mq():
-#     client = docker.from_env()
-#     containers_list = client.containers.list(filters={'name': 'rabbitmq'})
-#     logger.info([container.name for container in containers_list])
-#     if containers_list:
-#         container = containers_list[0]
-#     else:
-#         container = client.containers.run(
-#             image='rabbitmq:3.9.11-management',
-#             auto_remove=True,
-#             detach=True,
-#             name='rabbitmq',
-#             ports={
-#                 '5672': '5672',
-#                 '15672': '15672'
-#             }
-#         )
-#     with Broker(BROKER_HOST) as broker:
-#         while not broker.connect():
-#             sleep(10)
-#     yield container
 @pytest.fixture
 def cleanup_queues():
     flush_queue(BROKER_HOST, RoutingKeys.TASK)
@@ -84,7 +61,6 @@ def broker(cleanup_queues):
     broker = Broker(host=BROKER_HOST, queue=RoutingKeys.TASK)
     while not broker.is_connected:
         broker.connect()
-        sleep(10)
     yield broker
     flush_queue(BROKER_HOST, RoutingKeys.TASK)
     flush_queue(BROKER_HOST, RoutingKeys.RESULTS)
