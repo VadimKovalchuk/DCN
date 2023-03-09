@@ -26,15 +26,14 @@ def main():
                 registered = agent.register()
             if registered and not agent.broker:
                 agent.request_broker_data()
-            if agent.broker and not agent.broker.connected:
-                if agent.broker.ensure_connection():
-                    agent.broker.declare()
-            if agent.broker and agent.broker.connected:
-                for task in agent.broker.pulling_generator():
+            if agent.broker and not agent.broker.is_connected:
+                agent.broker.connect()
+            if agent.broker and agent.broker.is_connected:
+                status, task = agent.broker.consume()
+                if status and task:
                     runner = TaskRunner(task)
                     runner.run()
-                    agent.broker.push(runner.report, runner.report['client'])
-                    agent.broker.set_task_done(task)
+                    agent.broker.publish(runner.report, runner.report['client'])
             delta = monotonic() - timestamp
             logger.debug(f'Exit task loop after {delta:.3f} seconds')
             if delta < PULSE_PERIOD:
@@ -50,7 +49,7 @@ if __name__ == '__main__':
     log_folder.parent.mkdir(parents=True, exist_ok=True)
     log_config = [
         (__name__, logging.DEBUG),
-        (AGENT, logging.INFO),
+        (AGENT, logging.DEBUG),
         (BROKER, logging.INFO)
     ]
     for module_name, level in log_config:

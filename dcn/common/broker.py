@@ -51,7 +51,7 @@ class Broker:
             self.is_connected = True
             return True
         except pika.exceptions.AMQPConnectionError:
-            print('Unable to connect to RabbitMQ broker')
+            logger.warning('Unable to connect to RabbitMQ broker')
             return False
 
     def publish(self, message: dict, routing_key: str = None):
@@ -66,7 +66,7 @@ class Broker:
             return True
         except pika.exceptions.AMQPConnectionError:
             self.is_connected = False
-            print('Lost connection to RabbitMQ while publishing message')
+            logger.warning('Lost connection to RabbitMQ while publishing message')
             return False
 
     def consume(self):
@@ -79,7 +79,7 @@ class Broker:
                 return True, {}
         except pika.exceptions.AMQPConnectionError:
             self.is_connected = False
-            print('Lost connection to RabbitMQ while consuming message')
+            logger.warning('Lost connection to RabbitMQ while consuming message')
             return False, {}
 
     def close(self):

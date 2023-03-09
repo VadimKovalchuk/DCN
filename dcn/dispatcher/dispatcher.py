@@ -1,13 +1,12 @@
 import logging
-from time import monotonic
+from time import monotonic, sleep
 from typing import Callable, Union
 
 from dcn.agent.agent import RemoteAgent
 from dcn.common.broker import Broker
 from dcn.common.connection import ReplyConnection
 from dcn.common.constants import DISPATCHER, SECOND
-# from dcn.common.data_structures import compose_queue
-from dcn.common.defaults import EXCHANGE_NAME, INIT_AGENT_ID, RoutingKeys
+from dcn.common.defaults import INIT_AGENT_ID, RoutingKeys
 from dcn.common.request_types import Commands
 from dcn.common.database import Database
 
@@ -21,7 +20,7 @@ class Dispatcher:
                  broker_host: str = ''):
         logger.info('Starting Dispatcher')
         self.socket = ReplyConnection(ip, port)
-        self.broker = Broker(broker_host if broker_host else ip)
+        self.broker = Broker(host=broker_host if broker_host else ip)
         self.agents = {}
         self.request_handler = self.default_request_handler
         self._next_free_id = INIT_AGENT_ID
@@ -42,8 +41,10 @@ class Dispatcher:
         self.broker.queue = RoutingKeys.DISPATCHER
         self.broker.routing_key = RoutingKeys.DISPATCHER
         for i in range(12):
+            logger.debug('Establishing broker connection')
             if self.broker.connect():
                 return
+            sleep(10)
 
     def listen(self, polling_timeout: int = 60 * SECOND):
         ts = monotonic()
@@ -98,6 +99,8 @@ class Dispatcher:
             # request['broker']['exchange'] = EXCHANGE_NAME
             # request['broker']['result'] = compose_queue(RoutingKeys.RESULTS)
             request['result'] = True
+        else:
+            request['result'] = False
         return request
 
     def _pulse_handler(self, request: dict):
@@ -114,6 +117,8 @@ class Dispatcher:
             request['broker']['task'] = RoutingKeys.TASK
             request['broker']['result'] = request['name']
             request['result'] = True
+        else:
+            request['result'] = False
         return request
 
     def _disconnect_handler(self, request: dict):
