@@ -1,15 +1,15 @@
 import logging
-from time import sleep
+from time import monotonic
 from typing import Callable, Union
 
-from agent.agent import RemoteAgent
-from common.broker import Broker
-from common.connection import ReplyConnection
-from common.constants import DISPATCHER, SECOND
-from common.data_structures import compose_queue
-from common.defaults import INIT_AGENT_ID, RoutingKeys
-from common.request_types import Commands
-from common.database import Database
+from dcn.agent.agent import RemoteAgent
+from dcn.common.broker import Broker
+from dcn.common.connection import ReplyConnection
+from dcn.common.constants import DISPATCHER, SECOND
+# from dcn.common.data_structures import compose_queue
+from dcn.common.defaults import EXCHANGE_NAME, INIT_AGENT_ID, RoutingKeys
+from dcn.common.request_types import Commands
+from dcn.common.database import Database
 
 logger = logging.getLogger(DISPATCHER)
 
@@ -39,21 +39,25 @@ class Dispatcher:
         self.broker.close()
 
     def configure_broker(self):
-        self.broker._inactivity_timeout = 0.01 * SECOND
-        if self.broker.connect() and not self.broker.input_queue:
-            self.broker.setup_exchange()
-            self.broker.declare(input_queue=compose_queue(RoutingKeys.DISPATCHER))
+        self.broker.queue = RoutingKeys.DISPATCHER
+        self.broker.routing_key = RoutingKeys.DISPATCHER
+        for i in range(12):
+            if self.broker.connect():
+                return
 
-    def listen(self, polling_timeout: int = 10 * SECOND):
+    def listen(self, polling_timeout: int = 60 * SECOND):
+        ts = monotonic()
         while self._listen:
             expired = self.socket.listen(self.request_handler, polling_timeout)
             if self._interrupt and self._interrupt(expired):
                 break
-            if not self.broker.input_queue and not self.broker.channel.is_open:
-                self.configure_broker()
-            else:
-                for task in self.broker.pulling_generator():
-                    logger.debug(f'Got dispatcher task {task}')
+            if monotonic() > ts + 60 * SECOND:
+                if not self.broker.is_connected:
+                    self.configure_broker()
+                else:
+                    for task in self.broker.consume():
+                        logger.warning(f'Got dispatcher task {task}')
+                ts = monotonic()
 
     def default_request_handler(self, request: dict):
         commands = {
@@ -87,11 +91,13 @@ class Dispatcher:
         """
         agent = self.agents[request['id']]
         logger.info(f'Agent queues request received from {agent}')
-        config = Database.get_agent_param(agent.token)
-        request['broker']['host'] = config['broker']
-        request['broker']['task'] = compose_queue(RoutingKeys.TASK)
-        request['broker']['result'] = compose_queue(RoutingKeys.RESULTS)
-        request['result'] = True
+        if self.broker.is_connected:
+            config = Database.get_agent_param(agent.token)
+            request['broker']['host'] = config['broker']
+            request['broker']['queue'] = RoutingKeys.TASK
+            # request['broker']['exchange'] = EXCHANGE_NAME
+            # request['broker']['result'] = compose_queue(RoutingKeys.RESULTS)
+            request['result'] = True
         return request
 
     def _pulse_handler(self, request: dict):
@@ -102,11 +108,12 @@ class Dispatcher:
 
     def _client_handler(self, request: dict):
         logger.info(f'Client queues are requested by: {request["name"]}')
-        config = Database.get_client_param(request['token'])
-        request['broker']['host'] = config['broker']
-        request['broker']['task'] = compose_queue(RoutingKeys.TASK)
-        request['broker']['result'] = compose_queue(request['name'])
-        request['result'] = True
+        if self.broker.is_connected:
+            config = Database.get_client_param(request['token'])
+            request['broker']['host'] = config['broker']
+            request['broker']['task'] = RoutingKeys.TASK
+            request['broker']['result'] = request['name']
+            request['result'] = True
         return request
 
     def _disconnect_handler(self, request: dict):

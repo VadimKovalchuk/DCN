@@ -1,7 +1,7 @@
-version: "3.8"
+version: "3.10"
 services:
   rabbitmq:
-    image: "rabbitmq:3.9.11-management"
+    image: "rabbitmq:3.11.2-management"
     deploy:
       mode: global
     ports:
@@ -13,18 +13,18 @@ services:
       mode: global
     ports:
       - "9999:9999"
-    command: ["python", "dispatcher/service.py", "rabbitmq"]
+    command: ["python", "service/dispatcher.py", "rabbitmq"]
     volumes:
       - ./log/dispatcher/:/src/log/dispatcher/
     depends_on:
       - rabbitmq
   agent:
     image: "dcn:latest"
-    command: ["python", "agent/service.py", "dispatcher", "docker"]
+    command: ["python", "service/agent.py", "dispatcher", "docker"]
     volumes:
       - ./log/agent/:/src/log/agent/
     depends_on:
       - dispatcher
     deploy:
       mode: replicated
-      replicas: 2
+      replicas: 1

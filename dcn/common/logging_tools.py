@@ -31,7 +31,7 @@ def setup_module_logger(module_name: str,
     logger.addHandler(file_handler)
     logger.addHandler(stream_handler)
 
-    logger.info(f'Logger for {module_name} is started')
+    logger.info(f'Logger for {module_name} is started with level {level}')
 
 
 def get_datetime_stamp(for_filename=True):

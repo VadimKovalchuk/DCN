@@ -4,9 +4,9 @@ import sys
 from pathlib import Path
 from time import sleep, monotonic
 
-from agent import Agent, TaskRunner
-from common.constants import AGENT, BROKER, SECOND
-from common.logging_tools import get_datetime_stamp, setup_module_logger
+from dcn.agent import Agent, TaskRunner
+from dcn.common.constants import AGENT, BROKER, SECOND
+from dcn.common.logging_tools import get_datetime_stamp, setup_module_logger
 
 PULSE_PERIOD = 10 * SECOND
 
@@ -25,8 +25,11 @@ def main():
             if not registered:
                 registered = agent.register()
             if registered and not agent.broker:
-                agent.init_broker()
-            if agent.broker and agent.broker.is_open:
+                agent.request_broker_data()
+            if agent.broker and not agent.broker.connected:
+                if agent.broker.ensure_connection():
+                    agent.broker.declare()
+            if agent.broker and agent.broker.connected:
                 for task in agent.broker.pulling_generator():
                     runner = TaskRunner(task)
                     runner.run()
@@ -45,7 +48,11 @@ def main():
 if __name__ == '__main__':
     log_folder = Path(f'log/agent/{get_datetime_stamp()}_log.txt')
     log_folder.parent.mkdir(parents=True, exist_ok=True)
-    modules = [__name__, AGENT, BROKER]
-    for module_name in modules:
-        setup_module_logger(module_name, logging.DEBUG, log_folder)
+    log_config = [
+        (__name__, logging.DEBUG),
+        (AGENT, logging.INFO),
+        (BROKER, logging.INFO)
+    ]
+    for module_name, level in log_config:
+        setup_module_logger(module_name, level, log_folder)
     main()

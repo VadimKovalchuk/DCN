@@ -1,13 +1,12 @@
 from copy import deepcopy
+from time import sleep
 import logging
 
-from agent.agent import Agent, RemoteAgent
-from dispatcher.dispatcher import Dispatcher
-from common.broker import Broker
-from common.data_structures import compose_queue, task_body
-from common.defaults import RoutingKeys
-from common.request_types import Commands, Disconnect
-
+from dcn.agent.agent import Agent, RemoteAgent
+from dcn.dispatcher.dispatcher import Dispatcher
+from dcn.common.broker import Broker
+from dcn.common.data_structures import compose_queue, task_body
+from dcn.common.defaults import RoutingKeys
 
 logger = logging.getLogger(__name__)
 
@@ -35,17 +34,17 @@ def test_agent_queues(agent_on_dispatcher: Agent, broker: Broker):
     test_task['arguments'] = 'agent_task_test'
     task_result = deepcopy(task_body)
     task_result['arguments'] = 'agent_task_result'
-    broker.declare(input_queue=compose_queue(RoutingKeys.RESULTS),
-                   output_queue=compose_queue(RoutingKeys.TASK))
-    broker.push(test_task)
-    task = next(agent.broker.pulling_generator())
-    agent.broker.set_task_done(task)
-    assert test_task == task.body, \
+    broker.publish(test_task, RoutingKeys.TASK)
+    sleep(0.1)
+    _, task = agent.broker.consume()
+    assert test_task == task, \
         'Wrong task is received from task queue for Agent'
-    agent.broker.push(task_result)
-    result = next(broker.pulling_generator())
-    broker.set_task_done(result)
-    assert task_result == result.body, \
+    agent.broker.publish(task_result, RoutingKeys.RESULTS)
+    client = Broker(queue=RoutingKeys.RESULTS, host=agent.broker.host)
+    client.connect()
+    sleep(0.1)
+    _, result = client.consume()
+    assert task_result == result, \
         'Wrong Agent result is received from task queue'
 
 
@@ -70,7 +69,7 @@ def test_agent_connect_after_disconnect(dispatcher: Dispatcher, agent_on_dispatc
     new_agent_id = dispatcher._next_free_id
     assert agent.disconnect(), 'Agent Disconnect request has failed'
     agent.register()
-    agent.init_broker()
+    agent.request_broker_data()
     assert agent.id == new_agent_id, f'Unexpected agent ID {agent.id} instead of {new_agent_id}'
 
 

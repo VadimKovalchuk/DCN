@@ -1,12 +1,11 @@
 import logging
 from copy import deepcopy
 from datetime import datetime
-from functools import partial
 
-from common.connection import RequestConnection
-from common.constants import QUEUE
-from common.defaults import RoutingKeys
-from common.request_types import Register_agent, Pulse, Client_queues, Commands
+from dcn.common.connection import RequestConnection
+from dcn.common.data_structures import QUEUE
+from dcn.common.defaults import RoutingKeys
+from dcn.common.request_types import Register_agent, Pulse, Client_queues, Commands
 
 from tests.settings import CLIENT_TEST_TOKEN, DISPATCHER_PORT
 
@@ -74,10 +73,11 @@ def test_dsp_client_queue(dispatcher):
         request['name'] = 'test_dsp_client_queue'
         request['token'] = CLIENT_TEST_TOKEN
         reply = request_connection.send(request, 1)
+        logger.info(reply)
         assert reply['name'] == request['name'], \
             'Name param is modified or wrong reply'
         # TODO: Validate broker host
-        assert reply['broker']['result'][QUEUE] == request['name'], \
+        assert reply['broker']['result'] == request['name'], \
             'Wrong result queue name is defined by dispatcher'
-        assert reply['broker']['task'][QUEUE] == RoutingKeys.TASK, \
+        assert reply['broker']['task'] == RoutingKeys.TASK, \
             f'Task queue is not "{RoutingKeys.TASK}"'

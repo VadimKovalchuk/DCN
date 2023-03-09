@@ -3,9 +3,9 @@ import sys
 
 from pathlib import Path
 
-from dispatcher import Dispatcher
-from common.constants import BROKER, DISPATCHER
-from common.logging_tools import get_datetime_stamp, setup_module_logger
+from dcn.dispatcher import Dispatcher
+from dcn.common.constants import BROKER, DISPATCHER
+from dcn.common.logging_tools import get_datetime_stamp, setup_module_logger
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 def main():
     broker_host = sys.argv[1]
     with Dispatcher(broker_host=broker_host) as dispatcher:
-        dispatcher.connect()
         logger.info('Start listening')
         dispatcher.listen()
 

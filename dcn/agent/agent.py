@@ -2,18 +2,17 @@ import abc
 import logging
 import pathlib
 import sys
+import traceback
 
 from copy import deepcopy
 from datetime import datetime
 from importlib import import_module
 
-from typing import Callable
-
-from common.broker import Broker, Task
-from common.connection import RequestConnection
-from common.constants import AGENT, QUEUE
-from common.data_structures import task_report
-from common.request_types import Agent_queues, Disconnect, Register_agent, Pulse
+from dcn.common.broker import Broker
+from dcn.common.connection import RequestConnection
+from dcn.common.constants import AGENT, QUEUE
+from dcn.common.data_structures import task_report
+from dcn.common.request_types import Agent_queues, Disconnect, Register_agent, Pulse
 
 logger = logging.getLogger(AGENT)
 
@@ -71,7 +70,7 @@ class Agent(AgentBase):
             self.sync(reply)
         return reply['result']
 
-    def init_broker(self):
+    def request_broker_data(self):
         """
         Request Agent queues on Broker from Dispatcher.
         """
@@ -81,10 +80,13 @@ class Agent(AgentBase):
         reply = self.socket.send(request)
         if reply['result']:
             self.sync(reply)
-            self.broker = Broker(reply['broker']['host'])
-            self.broker.connect()
-            self.broker.declare(reply['broker']['task'],
-                                reply['broker']['result'])
+            host = reply['broker']['host']
+            queue = reply['broker']['queue']
+            self.broker = Broker(queue=queue, host=host)
+            # self.broker.output_queue = reply['broker']['result']
+            return True
+        else:
+            return False
 
     def pulse(self) -> bool:
         request = deepcopy(Pulse)
@@ -137,7 +139,7 @@ class RemoteAgent(AgentBase):
 
 
 class TaskRunner:
-    def __init__(self, task: Task):
+    def __init__(self, task: dict):
         self.task = task
         self.report = deepcopy(task_report)
         self._module = None
@@ -157,27 +159,20 @@ class TaskRunner:
         :return:
         bool: validation status (True=passed)
         """
-        logger.debug(self.task.body)
-        self.report['id'] = self.task.body['id']
-        client_queue = self.task.body.get('client')
-        if not client_queue or not client_queue.get(QUEUE):
+        if not all(key in self.task for key in ('id', 'client', 'module', 'function', 'arguments')):
             self.update_status(False,
-                               f'Invalid client queue: {client_queue}')
+                               f'Mandatory task components are missing')
             return False
-        self.report['client'] = self.task.body['client']
-        module = self.task.body.get('module')
-        if not module:
-            self.update_status(False, 'Task module is not defined')
-            return False
-        # TODO: Validate module is present
-        function = self.task.body.get('function')
-        if not function:
-            self.update_status(False, 'Task function is not defined')
-            return False
+        logger.info(
+            f"Task ({self.task['id']}) is received from "
+            f"{self.task['client']}: {self.task['module']}::{self.task['function']}"
+        )
+        self.report['id'] = self.task['id']
+        self.report['client'] = self.task['client']
         return True
 
     def get_module(self) -> bool:
-        module_name = self.task.body['module']
+        module_name = self.task['module']
         try:
             self._module = import_module(module_name)
             return True
@@ -186,26 +181,27 @@ class TaskRunner:
             return False
 
     def get_function(self) -> bool:
-        function_name = self.task.body['function']
+        function_name = self.task['function']
         try:
             self._function = getattr(self._module, function_name)
             return True
         except AttributeError:
             logger.error(f'Module {self._module} does not contain '
                          f'function {function_name}')
+            return False
 
     def execution(self) -> bool:
         try:
-            if self.task.body['arguments']:
+            if self.task['arguments']:
                 self.report['result'] = \
-                    self._function(self.task.body['arguments'])
+                    self._function(self.task['arguments'])
             else:
                 self.report['result'] = \
                     self._function()
             self.update_status(True, '')
             return True
         except Exception as e:
-            self.update_status(False, str(e))
+            self.update_status(False, traceback.format_exc())
             return False
 
     def run(self):
@@ -216,4 +212,5 @@ class TaskRunner:
             else:
                 return False
         else:
+            logger.info('Command execution is completed')
             return True

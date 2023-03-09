@@ -1,10 +1,9 @@
 from copy import deepcopy
 import logging
-from typing import Callable
 
-from common.broker import Broker
-from common.connection import RequestConnection
-from common.request_types import Client_queues
+from dcn.common.broker import Broker
+from dcn.common.connection import RequestConnection
+from dcn.common.request_types import Client_queues
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +25,8 @@ class Client:
         return self
 
     def __exit__(self, *exc_info):
+        if self.broker:
+            self.broker.close()
         self.socket.close()
 
     def get_client_queues(self):
@@ -34,11 +35,15 @@ class Client:
         request['token'] = self.token
         reply = self.socket.send(request)
         if reply['result']:
-            self.broker = Broker(reply['broker']['host'])
-            self.broker.connect()
-            self.broker.declare(reply['broker']['result'], reply['broker']['task'])
+            self.broker = Broker(
+                queue=reply['broker']['result'],
+                host=reply['broker']['host']
+            )
+            self.broker.output_routing_key = reply['broker']['task']
+            return True
         else:
-            ConnectionRefusedError('Invalid credentials or resource is busy')
+            return False
+            # ConnectionRefusedError('Invalid credentials or resource is busy')
 
 
 def main():

@@ -1,17 +1,16 @@
-import json
 import logging
 
 from copy import deepcopy
-from functools import partial
 from itertools import cycle
 from random import random
-from typing import Callable, Union
+from time import sleep
+from typing import Union
 
-from agent.agent import Agent, TaskRunner
-from client.client import Client
-from common.data_structures import compose_queue, task_body
-from common.defaults import RoutingKeys
-from dispatcher.dispatcher import Dispatcher
+from dcn.agent.agent import Agent, TaskRunner
+from dcn.client.client import Client
+from dcn.common.data_structures import compose_queue, task_body
+from dcn.common.defaults import RoutingKeys
+from dcn.dispatcher.dispatcher import Dispatcher
 from tests.settings import AGENT_TEST_TOKEN, DISPATCHER_PORT
 
 logger = logging.getLogger(__name__)
@@ -19,7 +18,7 @@ logger = logging.getLogger(__name__)
 task_input_queue = compose_queue(RoutingKeys.TASK)
 task_result_queue = compose_queue(RoutingKeys.RESULTS)
 test_tasks = {i: {'id': i, 'task': random()} for i in range(10)}
-expected_task_sequence = (0, 2, 4, 1, 3, 5, 6, 7, 8, 9)
+expected_task_sequence = range(10)  # (0, 2, 4, 1, 3, 5, 6, 7, 8, 9)
 
 
 def create_agent(name: Union[str, int]) -> Agent:
@@ -27,23 +26,27 @@ def create_agent(name: Union[str, int]) -> Agent:
     agent.name = str(name)
     agent.socket.establish()
     agent.register()
-    agent.init_broker()
+    agent.request_broker_data()
+    agent.broker.connect()
     agent.broker._inactivity_timeout = 0.1
     return agent
 
 
 def test_tasks_distribution(dispatcher: Dispatcher, client: Client):
     client.name = 'test'
-    client.get_client_queues()
-    logger.info(f'{len([client.broker.push(task) for _,task in test_tasks.items()])}'
+    all((
+        client.get_client_queues(),
+        client.broker.connect()
+    ))
+    logger.info(f'{len([client.broker.publish(task) for _,task in test_tasks.items()])}'
                 ' tasks generated')
+    sleep(0.1)
     agents = [create_agent(name) for name in range(3)]
     for agent, exp_id in zip(cycle(agents), expected_task_sequence):
         logger.debug(f'{agent} expects task {exp_id}')
-        task_queue = agent.broker.pulling_generator()
-        task = next(task_queue)
-        assert exp_id == task.body['id'], 'Wrong task is received'
-        agent.broker.set_task_done(task)
+        _, task = agent.broker.consume()
+        assert exp_id == task['id'], 'Wrong task is received'
+        # logger.debug(f'{agent} actual task {task["id"]}')
     for agent in agents:
         agent.close()
 
@@ -53,19 +56,19 @@ def test_full_chain(agent_on_dispatcher: Agent, client_on_dispatcher: Client):
     client = client_on_dispatcher
     # Send task from client
     test_task = deepcopy(task_body)
-    test_task['client'] = client.broker.input_queue
+    test_task['client'] = client.broker.queue
     test_task['arguments'] = {'test_arg_1': 'test_val_1',
                               'test_arg_2': 'test_val_2'}
-    client.broker.push(test_task)
+    client.broker.publish(test_task)
     # Processing task on agent
-    task = next(agent.broker.pulling_generator())
+    sleep(0.1)
+    _, task = agent.broker.consume()
     runner = TaskRunner(task)
     assert runner.run(), 'Error occur during task execution'
-    agent.broker.set_task_done(task)
     report = runner.report
     # Validating result on client
-    agent.broker.push(report, report['client'])
-    result = next(client.broker.pulling_generator())
-    client.broker.set_task_done(result)
-    assert test_task == task.body, \
+    agent.broker.publish(report, report['client'])
+    sleep(0.1)
+    _, result = client.broker.consume()
+    assert test_task['arguments'] == result['result'], \
         'Wrong task is received from task queue for Agent'

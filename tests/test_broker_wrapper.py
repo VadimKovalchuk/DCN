@@ -1,9 +1,9 @@
 import logging
 
 from random import random
-from common.broker import Broker, Task
-from common.data_structures import compose_queue
-from common.defaults import RoutingKeys
+from dcn.common.broker import Broker
+from dcn.common.data_structures import compose_queue
+from dcn.common.defaults import RoutingKeys
 
 logger = logging.getLogger(__name__)
 
@@ -12,38 +12,39 @@ task_result_queue = compose_queue(RoutingKeys.RESULTS)
 test_tasks = {i: {'id': i, 'task': random()} for i in range(10)}
 
 
-def process_task(task: Task):
-    assert test_tasks[task.body['id']] == task.body, 'Task differs from expected one'
-    return {'id': task.body['id'], 'result': task.body['task']}
+def process_task(task):
+    status, message = task
+    assert status, f'Failed to process task status: {task}'
+    if message:
+        assert test_tasks[message['id']] == message, 'Task differs from expected one'
+        return {'id': message['id'], 'result': message['task']}
 
 
-def validator_callback(task: Task):
-    assert test_tasks[task.body['id']]['task'] == task.body['result'], 'Task differs from expected one'
+def validator_callback(task):
+    status, message = task
+    assert status, f'Failed to process task status: {task}'
+    if message:
+        assert test_tasks[message['id']]['task'] == message['result'], 'Task differs from expected one'
 
 
 def test_broker_smoke():
-    with Broker('localhost') as client:
-        client.connect()
-        client.setup_exchange()
-        client.declare(output_queue=task_input_queue)
-        logger.info('Sending task')
-        for i in test_tasks:
-            client.push(test_tasks[i])
-    with Broker('localhost') as agent:
-        agent.connect()
-        agent.declare(input_queue=task_input_queue,
-                      output_queue=task_result_queue)
-        agent._inactivity_timeout = 0.1
-        logger.info('Processing task')
-        for task in agent.pulling_generator():
-            result = process_task(task)
-            agent.set_task_done(task)
-            agent.push(result)
-    with Broker('localhost') as validator:
-        validator.connect()
-        validator.declare(input_queue=task_result_queue)
-        validator._inactivity_timeout = 0.1
-        logger.info('Validating results')
-        for task in validator.pulling_generator():
-            validator_callback(task)
-            validator.set_task_done(task)
+    client = Broker()
+    client.output_routing_key = RoutingKeys.TASK
+    client.connect()
+    logger.info('Sending task')
+    for i in test_tasks:
+        client.publish(test_tasks[i])
+    client.close()
+    agent = Broker(queue=RoutingKeys.TASK)
+    agent.connect()
+    logger.info('Processing task')
+    for task in test_tasks:
+        result = process_task(agent.consume())
+        agent.publish(message=result, routing_key=RoutingKeys.RESULTS)
+    agent.close()
+    validator = Broker(queue=RoutingKeys.RESULTS)
+    validator.connect()
+    logger.info('Validating results')
+    for task in test_tasks:
+        validator_callback(validator.consume())
+    validator.close()

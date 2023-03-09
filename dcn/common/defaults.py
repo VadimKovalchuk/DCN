@@ -1,11 +1,11 @@
-from common.constants import SECOND
+from dcn.common.constants import SECOND
 
 # BROKER
 # connection
 CONNECTION_RETRY_COUNT = 10
 RECONNECT_DELAY = 5 * SECOND
 # exchange
-EXCHANGE_NAME = 'default'
+EXCHANGE_NAME = 'DCN'
 EXCHANGE_TYPE = 'direct'
 
 
