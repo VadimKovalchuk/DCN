@@ -40,24 +40,21 @@ class Dispatcher:
     def configure_broker(self):
         self.broker.queue = RoutingKeys.DISPATCHER
         self.broker.routing_key = RoutingKeys.DISPATCHER
-        for i in range(12):
-            logger.debug('Establishing broker connection')
-            if self.broker.connect():
-                return
-            sleep(10)
+        self.broker.connect()
 
-    def listen(self, polling_timeout: int = 60 * SECOND):
+    def listen(self, polling_timeout: int = 10 * SECOND):
         ts = monotonic()
         while self._listen:
             expired = self.socket.listen(self.request_handler, polling_timeout)
             if self._interrupt and self._interrupt(expired):
                 break
-            if monotonic() > ts + 60 * SECOND:
+            if monotonic() > ts + polling_timeout:
                 if not self.broker.is_connected:
                     self.configure_broker()
                 else:
                     for task in self.broker.consume():
-                        logger.warning(f'Got dispatcher task {task}')
+                        if task:
+                            logger.warning(f'Got dispatcher task {task}')
                 ts = monotonic()
 
     def default_request_handler(self, request: dict):
@@ -100,6 +97,7 @@ class Dispatcher:
             # request['broker']['result'] = compose_queue(RoutingKeys.RESULTS)
             request['result'] = True
         else:
+            logger.error('Rejected due to broker inactivity')
             request['result'] = False
         return request
 
@@ -118,6 +116,7 @@ class Dispatcher:
             request['broker']['result'] = request['name']
             request['result'] = True
         else:
+            logger.error('Rejected due to broker inactivity')
             request['result'] = False
         return request
 

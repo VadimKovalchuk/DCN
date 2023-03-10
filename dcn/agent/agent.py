@@ -65,10 +65,12 @@ class Agent(AgentBase):
             request['name'] = self.name
         request['token'] = self.token
         reply = self.socket.send(request)
-        if reply['result']:
+        if reply.get('result', False):
             self.id = reply['id']
             self.sync(reply)
-        return reply['result']
+            return True
+        else:
+            return False
 
     def request_broker_data(self):
         """
@@ -78,7 +80,7 @@ class Agent(AgentBase):
         request['token'] = self.token
         request['id'] = self.id
         reply = self.socket.send(request)
-        if reply['result']:
+        if reply.get('result'):
             self.sync(reply)
             host = reply['broker']['host']
             queue = reply['broker']['queue']

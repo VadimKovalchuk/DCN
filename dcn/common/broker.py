@@ -37,6 +37,7 @@ class Broker:
 
     def connect(self):
         try:
+            logger.info('Connecting to RabbitMQ broker')
             self._connection = pika.BlockingConnection(
                 pika.ConnectionParameters(
                     host=self.host,
