@@ -29,16 +29,16 @@ def main():
             if agent.broker and not agent.broker.is_connected:
                 agent.broker.connect()
             if agent.broker and agent.broker.is_connected:
-                status, task = agent.broker.consume()
-                if status and task:
-                    runner = TaskRunner(task)
-                    runner.run()
-                    agent.broker.publish(runner.report, runner.report['client'])
+                for status, task in agent.broker.pull():
+                    if status and task:
+                        runner = TaskRunner(task)
+                        runner.run()
+                        agent.broker.publish(runner.report, runner.report['client'])
             delta = monotonic() - timestamp
             logger.debug(f'Exit task loop after {delta:.3f} seconds')
             if delta < PULSE_PERIOD:
                 delay = PULSE_PERIOD - delta
-                logger.debug(f'Sleep for {delay} seconds')
+                logger.debug(f'Sleep for {delay:.3f} seconds')
                 sleep(delay)
             if registered:
                 agent.pulse()
