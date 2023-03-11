@@ -1,6 +1,8 @@
 import logging
-
 from random import random
+
+import pytest
+
 from dcn.common.broker import Broker
 from dcn.common.data_structures import compose_queue
 from dcn.common.defaults import RoutingKeys
@@ -27,7 +29,8 @@ def validator_callback(task):
         assert test_tasks[message['id']]['task'] == message['result'], 'Task differs from expected one'
 
 
-def test_broker_smoke():
+@pytest.mark.parametrize("get_task_type", ['consume', 'pull'])
+def test_broker_smoke(get_task_type):
     client = Broker()
     client.output_routing_key = RoutingKeys.TASK
     client.connect()
@@ -38,13 +41,23 @@ def test_broker_smoke():
     agent = Broker(queue=RoutingKeys.TASK)
     agent.connect()
     logger.info('Processing task')
-    for task in test_tasks:
-        result = process_task(agent.consume())
+    for _ in test_tasks:
+        if get_task_type == 'consume':
+            task = agent.consume()
+        elif get_task_type == 'pull':
+            task_queue = agent.pull()
+            task = next(task_queue)
+        result = process_task(task)
         agent.publish(message=result, routing_key=RoutingKeys.RESULTS)
     agent.close()
     validator = Broker(queue=RoutingKeys.RESULTS)
     validator.connect()
     logger.info('Validating results')
-    for task in test_tasks:
-        validator_callback(validator.consume())
+    for _ in test_tasks:
+        if get_task_type == 'consume':
+            task = validator.consume()
+        elif get_task_type == 'pull':
+            task_queue = validator.pull()
+            task = next(task_queue)
+        validator_callback(task)
     validator.close()

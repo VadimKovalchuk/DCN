@@ -3,7 +3,6 @@ from copy import deepcopy
 from datetime import datetime
 
 from dcn.common.connection import RequestConnection
-from dcn.common.data_structures import QUEUE
 from dcn.common.defaults import RoutingKeys
 from dcn.common.request_types import Register_agent, Pulse, Client_queues, Commands
 

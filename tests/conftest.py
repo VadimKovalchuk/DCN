@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 BROKER_HOST = '*'
-DISPATCHER_LISTEN_TIMEOUT = 0.01
+LISTEN_TIMEOUT = 0.01
 
 log_file_formatter = None
 cur_log_handler = None
@@ -72,7 +72,7 @@ def dispatcher(cleanup_queues):
         # dispatcher.connect()
         dispatcher.broker._inactivity_timeout = 0.1 * SECOND
         flush_queue(dispatcher.broker.host)
-        listener = Thread(target=dispatcher.listen, args=[DISPATCHER_LISTEN_TIMEOUT])
+        listener = Thread(target=dispatcher.listen, args=[LISTEN_TIMEOUT])
         listener.start()
         yield dispatcher
         dispatcher._listen = False

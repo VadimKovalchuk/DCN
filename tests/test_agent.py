@@ -2,10 +2,12 @@ from copy import deepcopy
 from time import sleep
 import logging
 
+import pytest
+
 from dcn.agent.agent import Agent, RemoteAgent
 from dcn.dispatcher.dispatcher import Dispatcher
 from dcn.common.broker import Broker
-from dcn.common.data_structures import compose_queue, task_body
+from dcn.common.data_structures import task_body
 from dcn.common.defaults import RoutingKeys
 
 logger = logging.getLogger(__name__)
@@ -28,22 +30,31 @@ def test_agent_pulse(dispatcher: Dispatcher, agent: Agent):
         assert agent.pulse(), 'Wrong reply status'
 
 
-def test_agent_queues(agent_on_dispatcher: Agent, broker: Broker):
+@pytest.mark.parametrize("get_task_type", ['consume', 'pull'])
+def test_agent_queues(agent_on_dispatcher: Agent, broker: Broker, get_task_type):
     agent = agent_on_dispatcher
     test_task = deepcopy(task_body)
     test_task['arguments'] = 'agent_task_test'
     task_result = deepcopy(task_body)
     task_result['arguments'] = 'agent_task_result'
     broker.publish(test_task, RoutingKeys.TASK)
-    sleep(0.1)
-    _, task = agent.broker.consume()
+    if get_task_type == 'consume':
+        sleep(0.1)
+        _, task = agent.broker.consume()
+    elif get_task_type == 'pull':
+        task_queue = agent.broker.pull()
+        _, task = next(task_queue)
     assert test_task == task, \
         'Wrong task is received from task queue for Agent'
     agent.broker.publish(task_result, RoutingKeys.RESULTS)
     client = Broker(queue=RoutingKeys.RESULTS, host=agent.broker.host)
     client.connect()
-    sleep(0.1)
-    _, result = client.consume()
+    if get_task_type == 'consume':
+        sleep(0.1)
+        _, result = client.consume()
+    elif get_task_type == 'pull':
+        result_queue = client.pull()
+        _, result = next(result_queue)
     assert task_result == result, \
         'Wrong Agent result is received from task queue'
 

@@ -6,7 +6,7 @@ from typing import Generator, Union
 import pika
 from pika.exceptions import AMQPConnectionError
 
-from dcn.common.constants import BROKER, EXCHANGE, QUEUE, SECOND
+from dcn.common.constants import BROKER, SECOND
 from dcn.common.defaults import EXCHANGE_NAME, EXCHANGE_TYPE, RoutingKeys
 
 logger = logging.getLogger(BROKER)
@@ -30,6 +30,7 @@ class Broker:
         self.output_routing_key = None
         self.queue = queue
         self.host = host
+        self.inactivity_timeout = 10  # seconds
         # self.credentials = credentials
         self.is_connected = False
         self._connection = None
@@ -45,10 +46,10 @@ class Broker:
                 )
             )
             self._channel = self._connection.channel()
+            self._channel.basic_qos(prefetch_count=1)
             self._channel.exchange_declare(exchange=self.exchange, exchange_type=self.exchange_type)
             self._channel.queue_declare(queue=self.queue)
             self._channel.queue_bind(exchange=self.exchange, queue=self.queue, routing_key=self.routing_key)
-            self._channel.basic_qos(prefetch_count=1)
             self.is_connected = True
             return True
         except pika.exceptions.AMQPConnectionError:
@@ -78,6 +79,24 @@ class Broker:
                 return True, json.loads(body)
             else:
                 return True, {}
+        except pika.exceptions.AMQPConnectionError:
+            self.is_connected = False
+            logger.warning('Lost connection to RabbitMQ while consuming message')
+            return False, {}
+
+    def pull(self):
+        try:
+            for method_frame, header_frame, body in self._channel.consume(
+                    queue=self.queue,
+                    # auto_ack=True,
+                    inactivity_timeout=self.inactivity_timeout
+            ):
+                logger.debug(f'Message received: {body}')
+                if body:
+                    self._channel.basic_ack(method_frame.delivery_tag)
+                    yield True, json.loads(body)
+                else:
+                    yield True, {}
         except pika.exceptions.AMQPConnectionError:
             self.is_connected = False
             logger.warning('Lost connection to RabbitMQ while consuming message')

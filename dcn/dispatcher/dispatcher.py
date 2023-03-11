@@ -52,9 +52,9 @@ class Dispatcher:
                 if not self.broker.is_connected:
                     self.configure_broker()
                 else:
-                    for task in self.broker.consume():
-                        if task:
-                            logger.warning(f'Got dispatcher task {task}')
+                    status, task = self.broker.consume()
+                    if status and task:
+                        logger.warning(f'Got dispatcher task {task}')
                 ts = monotonic()
 
     def default_request_handler(self, request: dict):
